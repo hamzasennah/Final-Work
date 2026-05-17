@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Centrale Casablanca</title>
+  <desc id="desc">Logo stylisé Centrale Casablanca pour l'interface AgroShield.</desc>
+  <rect width="512" height="512" fill="#063349"/>
+  <path d="M164 154c25-36 66-58 111-58" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round"/>
+  <path d="M158 188c30 25 73 27 107 4" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round"/>
+  <path d="M223 208c62-11 117-34 165-68-39 45-92 79-155 99-28 9-57 13-87 13v-44h77z" fill="#fff"/>
+  <path d="M142 198h94v40h-94z" fill="#18b28f"/>
+  <text x="112" y="315" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700" fill="#fff">Centrale</text>
+  <text x="146" y="358" font-family="Arial, Helvetica, sans-serif" font-size="25" letter-spacing="9" fill="#fff">CASABLANCA</text>
+</svg>

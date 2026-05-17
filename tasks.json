@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "AgroShield: lancer l'app web",
+      "type": "shell",
+      "command": "python server.py",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "AgroShield: verifier projet",
+      "type": "shell",
+      "command": "python src/check_project.py",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "AgroShield: extraire pipeline notebook",
+      "type": "shell",
+      "command": "python src/extract_notebook_pipeline.py",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "AgroShield: tester API locale",
+      "type": "shell",
+      "command": "python src/test_api.py",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

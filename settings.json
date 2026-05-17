@@ -1,0 +1,10 @@
+{
+  "files.exclude": {
+    "__pycache__": true,
+    "PlantVillage": true
+  },
+  "python.defaultInterpreterPath": "python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src"
+  ]
+}
