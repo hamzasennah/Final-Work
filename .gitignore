@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Datasets and trained weights are kept locally because they are too large for GitHub.
+PlantVillage/
+data/raw/
+data/balanced/
+models/*.pth
+models/*.pt
+models/*.png
+
+# Keep lightweight metadata if needed.
+!models/*.json
+
+.env
+*.log
