@@ -1,0 +1,9 @@
+requests
+Pillow
+gpiozero
+lgpio
+adafruit-circuitpython-dht
+adafruit-circuitpython-bh1750
+picamera2
+torch
+torchvision

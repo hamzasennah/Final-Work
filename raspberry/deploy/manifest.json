@@ -1,0 +1,8 @@
+{
+  "generated_at": "2026-05-18T23:21:32",
+  "model": "raspberry\\deploy\\models\\efficientnet_b0_rpi.pt",
+  "metadata": "raspberry\\deploy\\models\\efficientnet_b0_meta.json",
+  "target": "Raspberry Pi CPU TorchScript EfficientNet-B0",
+  "server_endpoint_photo": "/api/raspberry/photo",
+  "server_endpoint_sensors": "/api/raspberry/sensors"
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Centrale Casablanca</title>
+  <desc id="desc">Marque Centrale Casablanca sur fond bleu nuit.</desc>
+  <rect width="512" height="512" rx="0" fill="#063149"/>
+  <path d="M243 80c-66 11-111 56-111 111 0 54 44 88 106 88" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round"/>
+  <path d="M178 210h88v35h-88z" fill="#17b598"/>
+  <path d="M178 245c73 4 151-31 227-100-49 79-126 128-227 136z" fill="#ffffff"/>
+  <text x="105" y="352" font-family="Arial, Helvetica, sans-serif" font-size="59" font-weight="600" fill="#ffffff">Centrale</text>
+  <text x="139" y="401" font-family="Arial, Helvetica, sans-serif" font-size="28" letter-spacing="10" fill="#ffffff">CASABLANCA</text>
+</svg>

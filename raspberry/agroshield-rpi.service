@@ -1,0 +1,14 @@
+[Unit]
+Description=AgroShield Raspberry Pi client
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/home/pi/agroshield/raspberry
+ExecStart=/home/pi/agroshield/raspberry/.venv/bin/python agroshield_rpi_client.py --config config.json
+Restart=always
+RestartSec=5
+User=pi
+
+[Install]
+WantedBy=multi-user.target

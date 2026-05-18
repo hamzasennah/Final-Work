@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AgroShield | Centrale Casablanca</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <style>
     :root {
       --bg: #f4f7f3;
@@ -34,6 +35,18 @@
         linear-gradient(180deg, rgba(247,250,245,.94), rgba(232,241,234,.96)),
         repeating-linear-gradient(90deg, rgba(47,125,69,.08) 0 1px, transparent 1px 92px),
         repeating-linear-gradient(0deg, rgba(47,125,69,.06) 0 1px, transparent 1px 78px);
+    }
+    body.dark {
+      --bg: #101813;
+      --panel: #17231b;
+      --panel-soft: #1c2c22;
+      --ink: #edf7ef;
+      --muted: #adc0b3;
+      --line: #304236;
+      background:
+        linear-gradient(180deg, rgba(13,23,17,.97), rgba(23,37,28,.98)),
+        repeating-linear-gradient(90deg, rgba(139,214,111,.10) 0 1px, transparent 1px 92px),
+        repeating-linear-gradient(0deg, rgba(139,214,111,.08) 0 1px, transparent 1px 78px);
     }
     button, input, select { font: inherit; }
     button { cursor: pointer; }
@@ -131,7 +144,7 @@
       border: 1px solid var(--line);
       border-radius: 6px;
       padding: 0 14px;
-      background: #fff;
+      background: var(--panel);
       color: var(--ink);
       outline: none;
     }
@@ -160,7 +173,7 @@
       align-items: center;
       padding: 14px clamp(18px, 4vw, 42px);
       border-bottom: 1px solid var(--line);
-      background: rgba(249, 252, 248, .92);
+      background: color-mix(in srgb, var(--panel) 88%, transparent);
       backdrop-filter: blur(16px);
     }
     .brand { display: flex; gap: 12px; align-items: center; min-width: 0; }
@@ -186,6 +199,7 @@
       font-size: 13px;
       font-weight: 800;
     }
+    body.dark .nav-tab, body.dark .chip, body.dark .ghost, body.dark .icon-btn { background: #17231b; color: var(--ink); }
     .nav-tab.active { color: #fff; border-color: var(--green); background: var(--green); }
     .chip {
       display: inline-flex;
@@ -279,11 +293,18 @@
       padding: 16px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #fbfdfb;
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(246,251,247,.92));
+      box-shadow: 0 12px 28px rgba(24,48,34,.06);
     }
+    body.dark .metric { background: linear-gradient(180deg, rgba(35,51,40,.94), rgba(22,35,27,.95)); }
     .metric span { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
     .metric strong { display: block; margin-top: 10px; font-size: 28px; }
     .metric.alert { border-color: rgba(215,77,69,.35); background: #fff6f5; }
+    .metric-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .metric-icon { display:grid; place-items:center; width:34px; height:34px; border-radius:8px; background:rgba(47,125,69,.10); font-size:18px; }
+    .sparkline { width:100%; height:34px; margin-top:8px; }
+    .sparkline polyline { fill:none; stroke:var(--green); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+    .metric.alert .sparkline polyline { stroke:var(--red); }
 
     .sim-controls { display: flex; gap: 8px; flex-wrap: wrap; }
     .icon-btn, .ghost {
@@ -688,6 +709,16 @@
       padding: 14px;
     }
     .upload input { width: 100%; }
+    .preview {
+      display:none;
+      width:100%;
+      max-height:220px;
+      object-fit:contain;
+      border-radius:8px;
+      border:1px solid var(--line);
+      background:var(--panel);
+      margin-top:10px;
+    }
     .result {
       min-height: 126px;
       padding: 16px;
@@ -695,6 +726,7 @@
       border-radius: 8px;
       background: #fbfdfb;
     }
+    body.dark .upload, body.dark .result, body.dark .zone-map, body.dark .legend-item { background:#17231b; }
     .result h4 { margin: 0 0 10px; font-size: 16px; }
     .result p { margin: 5px 0; color: var(--muted); line-height: 1.45; }
     .table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -783,6 +815,7 @@
         <button class="nav-tab" data-view-target="thresholds" type="button">Seuils</button>
       </nav>
       <div class="top-actions">
+        <button class="icon-btn" id="themeToggle" type="button" title="Basculer theme clair/sombre">Theme</button>
         <span class="chip"><span class="dot"></span><span id="apiStatus">Connexion...</span></span>
         <span class="chip" id="userChip">Session active</span>
       </div>
@@ -910,10 +943,10 @@
               </select>
             </div>
             <div class="sensor-grid" style="grid-template-columns:1fr 1fr">
-              <div class="metric" id="mTemp"><span>Température</span><strong id="temperature">--</strong></div>
-              <div class="metric" id="mHum"><span>Humidité</span><strong id="humidity">--</strong></div>
-              <div class="metric" id="mRain"><span>Précipitation</span><strong id="precipitation">--</strong></div>
-              <div class="metric" id="mLight"><span>Luminosité</span><strong id="luminosity">--</strong></div>
+              <div class="metric" id="mTemp"><div class="metric-head"><span>Température</span><b class="metric-icon">T</b></div><strong id="temperature">--</strong><svg class="sparkline" data-spark="temperature" viewBox="0 0 100 34"><polyline points=""></polyline></svg></div>
+              <div class="metric" id="mHum"><div class="metric-head"><span>Humidité</span><b class="metric-icon">H</b></div><strong id="humidity">--</strong><svg class="sparkline" data-spark="humidity" viewBox="0 0 100 34"><polyline points=""></polyline></svg></div>
+              <div class="metric" id="mRain"><div class="metric-head"><span>Précipitation</span><b class="metric-icon">P</b></div><strong id="precipitation">--</strong><svg class="sparkline" data-spark="precipitation" viewBox="0 0 100 34"><polyline points=""></polyline></svg></div>
+              <div class="metric" id="mLight"><div class="metric-head"><span>Luminosité</span><b class="metric-icon">L</b></div><strong id="luminosity">--</strong><svg class="sparkline" data-spark="luminosity" viewBox="0 0 100 34"><polyline points=""></polyline></svg></div>
             </div>
           </div>
         </aside>
@@ -951,7 +984,8 @@
               </div>
               <label class="upload">
                 <input id="image" name="image" type="file" accept="image/*" required>
-                <span>Choisir une image de feuille à analyser</span>
+                <span>Choisir une image de feuille a analyser</span>
+                <img id="imagePreview" class="preview" alt="Apercu de la feuille">
               </label>
               <button class="primary" type="submit">Analyser la feuille</button>
             </form>
@@ -985,7 +1019,7 @@
         <div class="panel-body" style="overflow:auto">
           <table class="table">
             <thead>
-              <tr><th>Heure</th><th>Zone</th><th>Classe prédite</th><th>Confiance</th><th>Action</th></tr>
+              <tr><th>Date / heure</th><th>Zone</th><th>Classe prédite</th><th>Confiance</th><th>Action</th></tr>
             </thead>
             <tbody id="historyRows">
               <tr><td colspan="5">Aucune détection pour le moment.</td></tr>
@@ -1048,6 +1082,22 @@
     const navTabs = [...document.querySelectorAll("[data-view-target]")];
     let controlMode = "auto";
     let lastSensorPayload = null;
+    const series = { temperature: [], humidity: [], precipitation: [], luminosity: [] };
+
+    function pushSeries(key, value) {
+      const values = series[key];
+      values.push(Number(value));
+      if (values.length > 24) values.shift();
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const points = values.map((v, i) => {
+        const x = values.length === 1 ? 0 : (i / (values.length - 1)) * 100;
+        const y = 30 - ((v - min) / ((max - min) || 1)) * 26;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(" ");
+      const polyline = document.querySelector(`[data-spark="${key}"] polyline`);
+      if (polyline) polyline.setAttribute("points", points);
+    }
 
     function updateGreeting() {
       const hour = new Date().getHours();
@@ -1124,6 +1174,13 @@
       document.getElementById("mHum").classList.toggle("alert", data.alerts.humidity);
       document.getElementById("mRain").classList.toggle("alert", data.alerts.precipitation);
       document.getElementById("mLight").classList.toggle("alert", data.alerts.luminosity);
+      pushSeries("temperature", data.temperature);
+      pushSeries("humidity", data.humidity);
+      pushSeries("precipitation", data.precipitation);
+      pushSeries("luminosity", data.luminosity);
+      if (data.disease_context) {
+        document.getElementById("modeDescription").textContent += ` Risque maladie-meteo: ${Math.round(data.disease_context.combined_risk * 100)}%.`;
+      }
     }
 
     async function refreshSensors() {
@@ -1193,6 +1250,25 @@
       await refreshSensors();
     });
 
+    document.getElementById("themeToggle").addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("agroshieldTheme", document.body.classList.contains("dark") ? "dark" : "light");
+    });
+
+    if (localStorage.getItem("agroshieldTheme") === "dark") document.body.classList.add("dark");
+
+    document.getElementById("image").addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      const preview = document.getElementById("imagePreview");
+      if (!file) {
+        preview.style.display = "none";
+        preview.removeAttribute("src");
+        return;
+      }
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = "block";
+    });
+
     document.getElementById("detectForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       const form = new FormData();
@@ -1233,7 +1309,7 @@
       }
       rows.innerHTML = data.detections.slice().reverse().map((d) => `
         <tr>
-          <td>${new Date(d.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</td>
+          <td>${new Date(d.timestamp).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</td>
           <td>${d.zone_id}</td>
           <td>${d.predicted_class || (d.plant + " - " + d.disease)}</td>
           <td>${Math.round(d.confidence * 100)}%</td>

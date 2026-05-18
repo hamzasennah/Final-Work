@@ -222,6 +222,7 @@ system_state = {
 HYSTERESIS_DELAY = 8
 sensor_history = deque(maxlen=30)
 detections_db = []
+latest_raspberry_payload = {"timestamp": 0, "data": None}
 
 ZONES = {
     "A": {"label": "Zone A", "x_cm": (0, 20), "actuator": "module_gauche"},
@@ -234,63 +235,93 @@ ADJACENT_ZONES = {"A": ["B"], "B": ["A", "C"], "C": ["B"]}
 DISEASE_POLICIES = {
     "late blight": {
         "risk": 0.95,
-        "spread": "très élevée",
-        "action": "Traiter toutes les zones et isoler les plants très atteints.",
+        "spread": "tres elevee",
+        "action": "Traiter A, B et C; isoler les plants tres atteints et limiter la mouillure foliaire.",
         "scope": "all",
+        "weather": "cool_wet",
+        "mechanical_bias": "pluie",
+        "source": "Late blight is strongly favored by cool, wet and humid weather.",
     },
     "bacterial spot": {
         "risk": 0.86,
-        "spread": "élevée",
-        "action": "Traiter la zone détectée et les zones voisines; renforcer l'évitement des éclaboussures.",
+        "spread": "elevee",
+        "action": "Traiter la zone detectee et les zones voisines; reduire les eclaboussures et l'humidite foliaire.",
         "scope": "adjacent_high_all",
+        "weather": "warm_wet_splash",
+        "mechanical_bias": "pluie",
+        "source": "Bacterial spot is favored by warm wet weather and rain splash dispersal.",
     },
     "yellowleaf": {
         "risk": 0.82,
-        "spread": "élevée",
-        "action": "Surveiller toutes les zones et contrôler les aleurodes vecteurs.",
+        "spread": "elevee",
+        "action": "Surveiller A, B et C; controler les aleurodes vecteurs et reduire le stress thermique.",
         "scope": "all",
+        "weather": "warm_vector",
+        "mechanical_bias": "chaleur",
+        "source": "Tomato yellow leaf curl virus is vectored by whiteflies, with pressure increasing in warm crops.",
     },
     "yellow leaf": {
         "risk": 0.82,
-        "spread": "élevée",
-        "action": "Surveiller toutes les zones et contrôler les aleurodes vecteurs.",
+        "spread": "elevee",
+        "action": "Surveiller A, B et C; controler les aleurodes vecteurs et reduire le stress thermique.",
         "scope": "all",
+        "weather": "warm_vector",
+        "mechanical_bias": "chaleur",
+        "source": "Tomato yellow leaf curl virus is vectored by whiteflies, with pressure increasing in warm crops.",
     },
     "mosaic virus": {
         "risk": 0.78,
-        "spread": "élevée",
-        "action": "Isoler la zone détectée, désinfecter les manipulations et surveiller toute la culture.",
+        "spread": "elevee",
+        "action": "Isoler la zone detectee, desinfecter les manipulations et inspecter toute la culture.",
         "scope": "all_if_confident",
+        "weather": "contact_vector",
+        "mechanical_bias": "repos",
+        "source": "Mosaic viruses spread mainly by contact or vectors; climate is treated as a secondary stress factor.",
     },
     "septoria": {
         "risk": 0.76,
-        "spread": "moyenne à élevée",
-        "action": "Traiter la zone et les zones adjacentes; réduire l'humidité foliaire.",
+        "spread": "moyenne a elevee",
+        "action": "Traiter la zone et les demi-zones adjacentes; reduire la mouillure foliaire.",
         "scope": "adjacent",
+        "weather": "wet_splash",
+        "mechanical_bias": "pluie",
+        "source": "Septoria leaf spot spreads by rain splash and is favored by prolonged leaf wetness.",
     },
     "leaf mold": {
         "risk": 0.74,
-        "spread": "moyenne à élevée",
-        "action": "Traiter la zone et les zones adjacentes; améliorer l'aération.",
+        "spread": "moyenne a elevee",
+        "action": "Traiter la zone et les demi-zones adjacentes; ameliorer l'aeration et baisser l'humidite.",
         "scope": "adjacent",
+        "weather": "humid",
+        "mechanical_bias": "pluie",
+        "source": "Tomato leaf mold is favored by high relative humidity.",
     },
     "target spot": {
         "risk": 0.73,
-        "spread": "moyenne à élevée",
-        "action": "Traiter la zone détectée et la zone voisine la plus proche.",
+        "spread": "moyenne a elevee",
+        "action": "Traiter la zone detectee et la demi-zone voisine la plus exposee.",
         "scope": "adjacent",
+        "weather": "warm_wet_splash",
+        "mechanical_bias": "pluie",
+        "source": "Foliar spot diseases intensify when foliage remains wet and splash dispersal occurs.",
     },
     "early blight": {
         "risk": 0.70,
         "spread": "moyenne",
-        "action": "Traiter la zone détectée; ajouter les zones voisines si la confiance est forte.",
+        "action": "Traiter la zone detectee; ajouter les demi-zones voisines si confiance forte ou climat humide.",
         "scope": "confidence_adjacent",
+        "weather": "warm_wet_splash",
+        "mechanical_bias": "pluie",
+        "source": "Early blight is favored by warm, wet weather and extended leaf wetness.",
     },
     "spider mites": {
         "risk": 0.64,
         "spread": "moyenne",
-        "action": "Traiter la zone détectée et inspecter les zones voisines en climat chaud/sec.",
+        "action": "Traiter la zone detectee et inspecter les zones voisines en climat chaud et sec.",
         "scope": "confidence_adjacent",
+        "weather": "hot_dry",
+        "mechanical_bias": "chaleur",
+        "source": "Spider mite pressure typically rises under hot and dry stress.",
     },
 }
 
@@ -315,6 +346,84 @@ def classify_mechanical_mode(sensors, crop="default"):
     return "repos"
 
 
+def latest_active_disease(max_age_seconds=1800):
+    now = datetime.datetime.now()
+    for detection in reversed(detections_db):
+        if detection.get("is_healthy"):
+            continue
+        try:
+            detected_at = datetime.datetime.fromisoformat(detection["timestamp"])
+        except (KeyError, ValueError):
+            return detection
+        if (now - detected_at).total_seconds() <= max_age_seconds:
+            return detection
+    return None
+
+
+def environmental_modifier(policy, sensors, crop="default"):
+    th = CROP_THRESHOLDS.get(crop, CROP_THRESHOLDS["default"])
+    weather = policy.get("weather", "")
+    warm = sensors["temperature"] >= th["temp_on"] - 1
+    hot = sensors["temperature"] >= th["temp_on"]
+    humid = sensors["humidity"] >= th["humidity_on"]
+    wet = sensors["precipitation"] >= th["rain_off"] or humid
+    heavy_rain = sensors["precipitation"] >= th["rain_on"]
+    dry = sensors["humidity"] <= 45 and sensors["precipitation"] <= 2
+
+    score = 0.0
+    reasons = []
+    if weather == "cool_wet":
+        score += 0.18 if wet else 0
+        score += 0.08 if sensors["temperature"] <= th["temp_on"] else 0
+        if wet:
+            reasons.append("mouillure foliaire favorable")
+    elif weather == "warm_wet_splash":
+        score += 0.14 if warm else 0
+        score += 0.18 if wet else 0
+        score += 0.10 if heavy_rain else 0
+        if wet:
+            reasons.append("eclaboussures/pluie favorables")
+    elif weather == "wet_splash":
+        score += 0.18 if wet else 0
+        score += 0.12 if heavy_rain else 0
+        if wet:
+            reasons.append("dispersion par gouttes d'eau")
+    elif weather == "humid":
+        score += 0.22 if humid else 0
+        if humid:
+            reasons.append("humidite relative elevee")
+    elif weather == "warm_vector":
+        score += 0.16 if warm else 0
+        if warm:
+            reasons.append("stress thermique et pression vecteurs")
+    elif weather == "hot_dry":
+        score += 0.18 if hot and dry else 0
+        if hot and dry:
+            reasons.append("climat chaud et sec")
+    elif weather == "contact_vector":
+        score += 0.06 if warm or humid else 0
+
+    return min(0.30, score), reasons
+
+
+def disease_informed_mechanical_mode(sensors, crop="default"):
+    base_mode = classify_mechanical_mode(sensors, crop)
+    detection = latest_active_disease()
+    if not detection:
+        return base_mode, []
+
+    policy = disease_policy(detection.get("disease", ""))
+    modifier, reasons = environmental_modifier(policy, sensors, crop)
+    if modifier < 0.12:
+        return base_mode, reasons
+    if base_mode != "repos":
+        return base_mode, reasons
+    bias = policy.get("mechanical_bias", "repos")
+    if bias in {"pluie", "chaleur"}:
+        return bias, reasons
+    return base_mode, reasons
+
+
 def apply_mechanical_state(mode):
     target = {
         "repos": {"plate_angle": 0, "servo_angle": 0},
@@ -325,13 +434,70 @@ def apply_mechanical_state(mode):
 
 
 def evaluate_actuator(sensors, crop="default"):
-    next_mode = classify_mechanical_mode(sensors, crop)
+    next_mode, _ = disease_informed_mechanical_mode(sensors, crop)
     elapsed = time.time() - system_state["last_change"]
     if next_mode != system_state["mode"] and elapsed >= HYSTERESIS_DELAY:
         apply_mechanical_state(next_mode)
 
 
+def mechanism_description(mode):
+    return {
+        "repos": "Plaques abaissees a 0 degre: la culture reste ouverte.",
+        "chaleur": "Plaques horizontales a 90 degres: elles couvrent la culture contre la forte chaleur.",
+        "pluie": "Plaques inclinees vers le canal central: l'eau est conduite vers le reservoir.",
+    }[mode]
+
+
+def decorate_sensor_payload(data, crop="default"):
+    crop = crop if crop in CROP_THRESHOLDS else "default"
+    data["crop"] = crop
+    evaluate_actuator(data, crop)
+    th = CROP_THRESHOLDS.get(crop, CROP_THRESHOLDS["default"])
+    active_detection = latest_active_disease()
+    disease_context = None
+    if active_detection:
+        policy = disease_policy(active_detection.get("disease", ""))
+        modifier, reasons = environmental_modifier(policy, data, crop)
+        disease_context = {
+            "disease": active_detection.get("disease"),
+            "zone": active_detection.get("zone_id"),
+            "base_risk": policy["risk"],
+            "weather_modifier": round(modifier, 2),
+            "combined_risk": round(min(0.98, policy["risk"] + modifier), 2),
+            "weather_reasons": reasons,
+            "mechanical_bias": policy.get("mechanical_bias", "repos"),
+        }
+    data["thresholds"] = th
+    data["mechanism"] = {
+        "mode": system_state["mode"],
+        "plate_angle": system_state["plate_angle"],
+        "servo_angle": system_state["servo_angle"],
+        "description": mechanism_description(system_state["mode"]),
+    }
+    data["plates"] = {
+        "angle": system_state["plate_angle"],
+        "left": system_state["mode"] != "repos",
+        "right": system_state["mode"] != "repos",
+    }
+    data["alerts"] = {
+        "temperature": data["temperature"] >= th["temp_on"],
+        "humidity": data["humidity"] >= th["humidity_on"],
+        "precipitation": data["precipitation"] >= th["rain_on"],
+        "luminosity": data["luminosity"] >= th["luminosity_on"],
+    }
+    data["disease_context"] = disease_context
+    sensor_history.append(data.copy())
+    return data
+
+
 def get_sensors():
+    raspberry = latest_raspberry_payload.get("data")
+    if raspberry and time.time() - latest_raspberry_payload.get("timestamp", 0) < 25:
+        data = dict(raspberry)
+        data["mode"] = "raspberry"
+        data["last_update"] = latest_raspberry_payload["timestamp"]
+        return decorate_sensor_payload(data, data.get("crop", system_state["current_crop"]))
+
     # The simulation deliberately creates occasional heat and rain peaks so the
     # interface visibly demonstrates all mechanical positions during a defense.
     event = random.choices(["normal", "heat", "rain"], weights=[0.58, 0.22, 0.20], k=1)[0]
@@ -360,32 +526,7 @@ def get_sensors():
         "last_update": time.time(),
         "crop": system_state["current_crop"],
     }
-    evaluate_actuator(data, system_state["current_crop"])
-    th = CROP_THRESHOLDS.get(system_state["current_crop"], CROP_THRESHOLDS["default"])
-    data["thresholds"] = th
-    data["mechanism"] = {
-        "mode": system_state["mode"],
-        "plate_angle": system_state["plate_angle"],
-        "servo_angle": system_state["servo_angle"],
-        "description": {
-            "repos": "Plaques abaissées à 0 degré: la culture reste ouverte.",
-            "chaleur": "Plaques horizontales à 90 degrés: elles couvrent la culture contre la forte chaleur.",
-            "pluie": "Plaques inclinées vers le canal central: l'eau est conduite vers le réservoir.",
-        }[system_state["mode"]],
-    }
-    data["plates"] = {
-        "angle": system_state["plate_angle"],
-        "left": system_state["mode"] != "repos",
-        "right": system_state["mode"] != "repos",
-    }
-    data["alerts"] = {
-        "temperature": data["temperature"] >= th["temp_on"],
-        "humidity": data["humidity"] >= th["humidity_on"],
-        "precipitation": data["precipitation"] >= th["rain_on"],
-        "luminosity": data["luminosity"] >= th["luminosity_on"],
-    }
-    sensor_history.append(data)
-    return data
+    return decorate_sensor_payload(data, system_state["current_crop"])
 
 
 def mock_predict():
@@ -485,9 +626,12 @@ def disease_policy(disease):
             return policy
     return {
         "risk": 0.55,
-        "spread": "modérée",
-        "action": "Traiter la zone détectée et maintenir la surveillance.",
+        "spread": "moderee",
+        "action": "Traiter la zone detectee et maintenir la surveillance.",
         "scope": "local",
+        "weather": "contact_vector",
+        "mechanical_bias": "repos",
+        "source": "Regle conservatrice appliquee aux classes non specialisees.",
     }
 
 
@@ -564,6 +708,41 @@ def get_treatment_zones(zone_id, confidence, is_healthy, disease=""):
     }
 
 
+def analyze_image_object(img, zone_id="A", lat=33.5731, lng=-7.5898):
+    result = predict(img)
+    sensors_now = sensor_history[-1] if sensor_history else get_sensors()
+    policy = disease_policy(result["disease"])
+    weather_modifier, weather_reasons = environmental_modifier(
+        policy,
+        sensors_now,
+        system_state["current_crop"],
+    )
+    treatment = get_treatment_zones(zone_id, result["confidence"], result["is_healthy"], result["disease"])
+    if not result["is_healthy"]:
+        boosted = round(min(0.98, treatment["propagation_probability"] + weather_modifier), 2)
+        treatment["propagation_probability"] = boosted
+        treatment["weather_modifier"] = round(weather_modifier, 2)
+        treatment["weather_reasons"] = weather_reasons
+        treatment["policy_source"] = policy.get("source", "")
+        if boosted >= 0.84 and treatment["zones"] != ["A", "B", "C"]:
+            treatment["recommendation"] += " Conditions actuelles favorables: etendre la surveillance a toute la culture."
+    det = {
+        "zone_id": zone_id.upper(),
+        "lat": lat,
+        "lng": lng,
+        "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
+        "plant": result["plant"],
+        "disease": result["disease"],
+        "predicted_class": result["predicted_class"],
+        "confidence": result["confidence"],
+        "is_healthy": result["is_healthy"],
+        "agreement_score": result["agreement_score"],
+        "treatment": treatment,
+    }
+    detections_db.append(det)
+    return {**result, "zone": det, "treatment": treatment}
+
+
 @app.route("/")
 def index():
     return send_file(str(BASE_DIR / "index.html"))
@@ -590,6 +769,30 @@ def health():
 @app.route("/api/sensors")
 def sensors():
     return jsonify(get_sensors())
+
+
+@app.route("/api/raspberry/sensors", methods=["POST"])
+def raspberry_sensors():
+    payload = request.get_json(silent=True) or {}
+    required = ("temperature", "humidity", "precipitation", "luminosity")
+    missing = [key for key in required if key not in payload]
+    if missing:
+        return jsonify({"error": f"Champs manquants: {', '.join(missing)}"}), 400
+    crop = payload.get("crop", system_state["current_crop"])
+    if crop in CROP_THRESHOLDS:
+        system_state["current_crop"] = crop
+    data = {
+        "temperature": round(float(payload["temperature"]), 1),
+        "humidity": round(float(payload["humidity"]), 1),
+        "precipitation": round(float(payload["precipitation"]), 1),
+        "luminosity": round(float(payload["luminosity"]), 1),
+        "soil_moisture": round(float(payload.get("soil_moisture", 0)), 1),
+        "reservoir_level": round(float(payload.get("reservoir_level", 0)), 1),
+        "crop": system_state["current_crop"],
+        "pi_id": payload.get("pi_id", "raspberry-pi"),
+    }
+    latest_raspberry_payload.update({"timestamp": time.time(), "data": data})
+    return jsonify({"received": True, **decorate_sensor_payload(data, system_state["current_crop"])})
 
 
 @app.route("/api/history")
@@ -650,26 +853,23 @@ def analyze():
     lng = float(request.form.get("lng", -7.5898))
     try:
         img = Image.open(io.BytesIO(file.read())).convert("RGB")
-        result = predict(img)
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
-    treatment = get_treatment_zones(zone_id, result["confidence"], result["is_healthy"], result["disease"])
-    det = {
-        "zone_id": zone_id.upper(),
-        "lat": lat,
-        "lng": lng,
-        "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
-        "plant": result["plant"],
-        "disease": result["disease"],
-        "predicted_class": result["predicted_class"],
-        "confidence": result["confidence"],
-        "is_healthy": result["is_healthy"],
-        "agreement_score": result["agreement_score"],
-        "treatment": treatment,
-    }
-    detections_db.append(det)
-    return jsonify({**result, "zone": det, "treatment": treatment})
+    return jsonify(analyze_image_object(img, zone_id, lat, lng))
+
+
+@app.route("/api/raspberry/photo", methods=["POST"])
+def raspberry_photo():
+    if "image" not in request.files:
+        return jsonify({"error": "Aucune image recue depuis la Raspberry Pi."}), 400
+    file = request.files["image"]
+    zone_id = request.form.get("zone_id", "A")
+    try:
+        img = Image.open(io.BytesIO(file.read())).convert("RGB")
+        return jsonify(analyze_image_object(img, zone_id))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.route("/api/disease_map")

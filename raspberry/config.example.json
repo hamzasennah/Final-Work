@@ -1,0 +1,20 @@
+{
+  "server_url": "http://192.168.1.10:5000",
+  "pi_id": "agroshield-pi-01",
+  "crop": "tomato",
+  "zone_id": "A",
+  "sensor_interval_seconds": 5,
+  "photo_interval_seconds": 60,
+  "pins": {
+    "dht": 4,
+    "rain_digital": 17,
+    "servo_left": 12,
+    "servo_right": 13,
+    "servo_camera": 18
+  },
+  "servo_angles": {
+    "repos": 0,
+    "chaleur": 90,
+    "pluie": 55
+  }
+}

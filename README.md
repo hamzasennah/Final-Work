@@ -1,69 +1,150 @@
-# Carte complète du projet AgroShield
+# AgroShield - Centrale Casablanca
 
-Ce fichier sert de point d'entrée dans VS Code. Il relie toutes les parties du travail sans supprimer le notebook original.
+AgroShield est un centre de contrôle agricole intelligent réalisé par le Groupe PLBD 3. Le projet combine diagnostic foliaire par IA, capteurs climatiques reliés à une Raspberry Pi, servomoteurs et plaques mécaniques orientables pour protéger les cultures contre la forte chaleur, les pluies intenses et les conditions qui accélèrent la propagation des maladies.
 
-## 1. Notebook original
+## Ce que contient le dépôt
 
-- `notebooks/AgroShield_VSCode_CPU.ipynb`
+```text
+final work/
+├── server.py                         # API Flask, modèles IA, logique capteurs, Raspberry et décision mécanique
+├── index.html                        # Application web professionnelle
+├── assets/                           # Logos Centrale Casablanca, AgroShield et favicon
+├── notebooks/                        # Notebook complet conservé et synchronisé
+├── src/pipeline/                     # Étapes extraites du notebook pour lecture dans VS Code
+├── src/prepare_raspberry_bundle.py   # Préparation EfficientNet-B0 TorchScript pour Raspberry Pi
+├── raspberry/                        # Code embarqué capteurs, caméra, servos et client API
+├── docs/                             # Documentation technique complémentaire
+├── data/raw/PlantVillage/            # Dataset brut local, ignoré par Git
+├── data/balanced/                    # Dataset équilibré local, ignoré par Git
+└── models/                           # Métadonnées suivies, poids lourds gardés localement
+```
 
-Il contient l'historique complet: installation, vérification, extraction, équilibrage, split, entraînement, évaluation, exports Raspberry Pi, génération de serveur et interface.
+Les scripts extraits du notebook couvrent l’installation, l’extraction des données, l’équilibrage Albumentations, le split train/validation/test, les DataLoaders avec `WeightedRandomSampler`, EfficientNet-B0, ResNet-50, l’entraînement CPU, les courbes, l’évaluation test, l’export Raspberry Pi et la génération des services web.
 
-## 2. Données
+## Lancer l’application
 
-- `data/raw/PlantVillage/` : dataset brut utilisé pour l'apprentissage.
-- `data/balanced/` : dataset équilibré par augmentation.
-- `models/` : poids EfficientNet-B0, ResNet-50, exports Raspberry Pi et métadonnées.
+```bash
+pip install -r requirements.txt
+python server.py
+```
 
-## 3. Pipeline extrait du notebook
+Ouvrir ensuite `http://localhost:5000`.
 
-Les scripts suivants rendent le travail visible fichier par fichier dans VS Code:
+Accès interface:
 
-- `src/pipeline/00_installation_verification.py`
-- `src/pipeline/01_extraction_data.py`
-- `src/pipeline/02_equilibrage_albumentations.py`
-- `src/pipeline/03_split_train_val_test.py`
-- `src/pipeline/04_dataloaders_weighted_sampler.py`
-- `src/pipeline/05_modeles_cnn.py`
-- `src/pipeline/06_entrainement_cpu.py`
-- `src/pipeline/07_courbes_apprentissage.py`
-- `src/pipeline/08_evaluation_test_set.py`
-- `src/pipeline/09_export_raspberry_pi.py`
-- `src/pipeline/10_test_modeles_image.py`
-- `src/pipeline/11_generation_server_archive.py`
-- `src/pipeline/12_generation_index_archive.py`
+- Email: `prenom.nom@centrale-casablanca.ma`
+- Code projet: `10101010`
 
-## 4. Application web
+Pour un accès depuis un autre appareil du même réseau, utiliser `http://<adresse-ip-du-pc>:5000`.
 
-- `server.py` : API Flask, capteurs simulés, hystérésis, chargement EfficientNet-B0 et ResNet-50, diagnostic, règles A/B/C.
-- `index.html` : interface web avec dashboard, mécanisme animé, diagnostic et tableau des seuils par culture.
-- `assets/centrale-casablanca-logo.svg` : logo utilisé dans l'interface.
+## Fonctionnalités principales
 
-## 5. Scripts de vérification
+- Dashboard capteurs avec température, humidité, précipitation, luminosité, état global et mini tendances.
+- Animation mécanique fidèle au prototype: repos à 0°, plaques horizontales à 90° en forte chaleur, plaques inclinées en pluie pour guider l’eau vers le canal central puis le réservoir.
+- Diagnostic IA par image avec aperçu, classe prédite, confiance, zones A/B/C à traiter et historique avec date + heure.
+- Seuils par culture: tomate, poivron et pomme de terre avec hystérésis pour éviter les oscillations des servomoteurs.
+- Boucle intégrée maladie-météo: la pluie, l’humidité et la chaleur ne sont pas traitées séparément du diagnostic, elles modifient le risque de propagation et peuvent déclencher une action mécanique.
+- Endpoints Raspberry Pi pour les capteurs et la caméra.
 
-- `src/check_project.py` : vérifie datasets, modèles et métadonnées.
-- `src/test_api.py` : teste l'API locale après lancement de `server.py`.
-- `src/extract_notebook_pipeline.py` : régénère les fichiers `src/pipeline/` depuis le notebook.
+## Modèles IA
 
-## 6. Tâches VS Code
+Le projet utilise deux modèles entraînés:
 
-Dans VS Code: `Terminal > Run Task...`
+- `EfficientNet-B0`
+- `ResNet-50`
 
-- `AgroShield: lancer l'app web`
-- `AgroShield: verifier projet`
-- `AgroShield: tester API locale`
-- `AgroShield: extraire pipeline notebook`
+Les poids `.pth` et `.pt` sont ignorés par Git pour éviter un dépôt trop lourd. Les métadonnées `.json` restent suivies. Pour préparer EfficientNet-B0 pour Raspberry Pi:
 
-## 7. Décision A/B/C
+```bash
+python src/prepare_raspberry_bundle.py
+```
 
-La détection ne s'arrête pas à une probabilité. Elle renvoie:
+Le script prépare:
 
-- la classe prédite;
-- la zone observée;
-- les zones ou demi-zones à traiter;
-- une recommandation agronomique.
+```text
+raspberry/deploy/models/efficientnet_b0_rpi.pt
+raspberry/deploy/models/efficientnet_b0_meta.json
+raspberry/deploy/manifest.json
+```
+
+## Déploiement Raspberry Pi
+
+La Raspberry Pi peut envoyer les capteurs et photos directement à l’application:
+
+- `POST /api/raspberry/sensors`
+- `POST /api/raspberry/photo`
+
+Code embarqué:
+
+```bash
+cd raspberry
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-rpi.txt
+cp config.example.json config.json
+python agroshield_rpi_client.py --config config.json
+```
+
+Le client lit les capteurs, applique une décision locale avec hystérésis si le serveur est indisponible, actionne les servos et envoie les photos caméra pour affichage immédiat dans l’interface.
+
+## Logique de décision
+
+Le mode automatique combine:
+
+1. Seuils climatiques de la culture.
+2. Hystérésis haut/bas pour stabiliser les plaques.
+3. Dernière maladie détectée.
+4. Facteur météo de propagation de la maladie.
 
 Exemples:
 
-- maladie locale/modérée en zone A: `Zone A complète`;
-- maladie moyenne en zone A: `Zone A complète + moitié gauche de la zone B`;
-- maladie très propagative: `Zone A complète + Zone B complète + Zone C complète`.
+- Pluie intense ou humidité élevée + Septoria: plaques inclinées, canal actif, risque de propagation augmenté.
+- Forte chaleur + pression de virus transmis par aleurodes: plaques horizontales si le seuil chaleur est dépassé.
+- Late blight en climat humide: traitement A/B/C, car la propagation est très élevée.
+
+Formule de confiance IA:
+
+```text
+P(y = k | z) = exp(z_k) / sum_j exp(z_j)
+```
+
+Indice de risque environnemental utilisé comme base conceptuelle:
+
+```text
+I_risk = alpha * H_r + beta * 1 / (|T - T_opt| + 1)
+avec alpha + beta = 1
+```
+
+## Règles zones A/B/C
+
+- Maladies très propagatives: A, B et C.
+- Maladies à propagation par pluie ou éclaboussures: zone détectée + demi-zone voisine.
+- Confiance IA très élevée ou météo favorable: extension de surveillance et parfois traitement global.
+- Feuille saine: surveillance uniquement.
+
+Le résultat ne s’arrête donc pas à un pourcentage: l’application donne les segments précis à traiter, par exemple `Zone A complète + moitié gauche de la zone B`.
+
+## Sources et ressources utilisées
+
+Documents projet fournis:
+
+- `PLBD_Rapport_Groupe3_Janvier2026.pdf`
+- `SOUTENANCE PRESENTATION.pdf`
+- `Beige Minimalistic Pros and Cons List Decision Table A4 Document.pdf`
+- `notebooks/AgroShield_VSCode_CPU.ipynb`
+
+Références agronomiques consultées pour relier maladies et météo:
+
+- University of Minnesota Extension, late blight: https://extension.umn.edu/disease-management/late-blight
+- Penn State Extension, potato/tomato late blight and cool wet conditions: https://extension.psu.edu/late-blight-of-potato-and-tomato
+- Iowa State University Extension, bacterial spot of pepper and tomatoes: https://yardandgarden.extension.iastate.edu/encyclopedia/bacterial-spot-pepper-and-tomatoes
+- University of Minnesota Extension, tomato leaf mold: https://extension.umn.edu/disease-management/tomato-leaf-mold
+- NC State Extension, Tomato yellow leaf curl virus: https://content.ces.ncsu.edu/tomato-yellow-leaf-curl-virus
+- University of Maryland Extension, tomato heat stress and high-temperature problems: https://extension.umd.edu/resource/high-temperature-and-heat-injury-vegetables/
+- University of Minnesota Extension, growing tomatoes, peppers and potatoes: https://extension.umn.edu/vegetables
+
+## GitHub
+
+Le dépôt garde le code, la documentation, les métadonnées et l’architecture VS Code. Les datasets et poids lourds sont conservés localement et ignorés par `.gitignore`.
+
+Pour partager les modèles complets, utiliser Git LFS ou un lien Drive/OneDrive dans la documentation du projet.
