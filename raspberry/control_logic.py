@@ -16,19 +16,22 @@ class HysteresisController:
         self.last_change = 0
         self.delay_seconds = delay_seconds
 
-    def decide(self, sensors):
+    def decide(self, sensors, disease_command=None):
         th = CROP_THRESHOLDS[self.crop]
         rain_alert = sensors["precipitation"] >= th["rain_on"] or sensors["humidity"] >= th["humidity_on"]
         heat_alert = sensors["temperature"] >= th["temp_on"] or sensors["luminosity"] >= th["luminosity_on"]
         clear_rain = sensors["precipitation"] <= th["rain_off"] and sensors["humidity"] <= th["humidity_off"]
         clear_heat = sensors["temperature"] <= th["temp_off"] and sensors["luminosity"] < th["luminosity_on"] - 80
 
-        if self.mode == "pluie" and not clear_rain:
+        disease_mode = self._disease_climate_mode(disease_command, heat_alert, rain_alert)
+        if disease_mode:
+            target = disease_mode
+        elif self.mode == "pluie" and not clear_rain:
+            target = "pluie"
+        elif rain_alert:
             target = "pluie"
         elif self.mode == "chaleur" and not clear_heat:
             target = "chaleur"
-        elif rain_alert:
-            target = "pluie"
         elif heat_alert:
             target = "chaleur"
         else:
@@ -38,3 +41,20 @@ class HysteresisController:
             self.mode = target
             self.last_change = time.time()
         return self.mode
+
+    def _disease_climate_mode(self, disease_command, heat_alert, rain_alert):
+        if not disease_command:
+            return None
+        if time.time() - disease_command.get("timestamp", 0) > disease_command.get("ttl_seconds", 1800):
+            return None
+        mode = disease_command.get("recommended_mechanism", "repos")
+        heat_active = disease_command.get("heat_active", False) and heat_alert
+        rain_active = disease_command.get("rain_active", False) and rain_alert
+        risk = disease_command.get("instant_risk", 0)
+        if risk < 0.70:
+            return None
+        if mode == "pluie" and rain_active:
+            return "pluie"
+        if mode == "chaleur" and heat_active:
+            return "chaleur"
+        return None

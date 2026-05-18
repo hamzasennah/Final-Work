@@ -446,10 +446,10 @@ def classify_mechanical_mode(sensors, crop="default"):
 
     if current == "pluie" and not clear_rain:
         return "pluie"
-    if current == "chaleur" and not clear_heat:
-        return "chaleur"
     if rain_alert:
         return "pluie"
+    if current == "chaleur" and not clear_heat:
+        return "chaleur"
     if heat_alert:
         return "chaleur"
     return "repos"
@@ -619,11 +619,11 @@ def disease_informed_mechanical_mode(sensors, crop="default"):
     diagnosis = climate_diagnosis_for_result(result_like, sensors, crop)
     if diagnosis["climate_delta"] < 0.12:
         return base_mode, [diagnosis["rationale"]]
-    if base_mode != "repos":
-        return base_mode, [diagnosis["rationale"]]
     mode = diagnosis["recommended_mechanism"]
     if mode in {"pluie", "chaleur"}:
         return mode, [diagnosis["rationale"]]
+    if base_mode != "repos":
+        return base_mode, [diagnosis["rationale"]]
     return base_mode, [diagnosis["rationale"]]
 
 
@@ -639,7 +639,14 @@ def apply_mechanical_state(mode):
 def evaluate_actuator(sensors, crop="default"):
     next_mode, _ = disease_informed_mechanical_mode(sensors, crop)
     elapsed = time.time() - system_state["last_change"]
-    if next_mode != system_state["mode"] and elapsed >= HYSTERESIS_DELAY:
+    th = CROP_THRESHOLDS.get(crop, CROP_THRESHOLDS["default"])
+    urgent_rain = next_mode == "pluie" and (
+        sensors["precipitation"] >= th["rain_on"] or latest_active_disease() is not None
+    )
+    urgent_heat = next_mode == "chaleur" and (
+        sensors["temperature"] >= th["temp_on"] and latest_active_disease() is not None
+    )
+    if next_mode != system_state["mode"] and (elapsed >= HYSTERESIS_DELAY or urgent_rain or urgent_heat):
         apply_mechanical_state(next_mode)
 
 
@@ -693,6 +700,22 @@ def decorate_sensor_payload(data, crop="default"):
         "luminosity": data["luminosity"] >= th["luminosity_on"],
     }
     data["disease_context"] = disease_context
+    command_reason = "Seuils climatiques de la culture"
+    command_source = "crop_thresholds"
+    if disease_context and disease_context["combined_risk"] >= 0.70:
+        command_reason = (
+            f"Maladie detectee en zone {disease_context['zone']}: "
+            f"risque maladie-climat {round(disease_context['combined_risk'] * 100)}%"
+        )
+        command_source = "disease_climate_loop"
+    data["actuator_command"] = {
+        "mode": system_state["mode"],
+        "plate_angle": system_state["plate_angle"],
+        "servo_angle": system_state["servo_angle"],
+        "source": command_source,
+        "reason": command_reason,
+        "apply_on_raspberry": True,
+    }
     sensor_history.append(data.copy())
     return data
 

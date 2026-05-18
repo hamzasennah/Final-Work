@@ -88,6 +88,21 @@ python agroshield_rpi_client.py --config config.json
 
 Le client lit les capteurs, applique une décision locale avec hystérésis si le serveur est indisponible, actionne les servos et envoie les photos caméra pour affichage immédiat dans l’interface.
 
+Quand une image détecte une maladie, le serveur renvoie aussi une commande exploitable par la Raspberry:
+
+```json
+{
+  "actuator_command": {
+    "mode": "pluie",
+    "source": "disease_climate_loop",
+    "reason": "Maladie detectee en zone A: risque maladie-climat 98%",
+    "apply_on_raspberry": true
+  }
+}
+```
+
+Ainsi les plaques ne réagissent pas seulement à un seuil météo brut. Elles réagissent aussi quand la météo actuelle aggrave la maladie détectée: inclinaison en cas de pluie favorisant une maladie par éclaboussures, couverture en cas de chaleur favorisant stress ou vecteurs.
+
 ## Logique de décision maladie-climat
 
 Le mode automatique combine:

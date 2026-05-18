@@ -5,6 +5,7 @@
   "zone_id": "A",
   "sensor_interval_seconds": 5,
   "photo_interval_seconds": 60,
+  "disease_command_ttl_seconds": 1800,
   "pins": {
     "dht": 4,
     "rain_digital": 17,

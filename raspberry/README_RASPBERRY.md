@@ -9,6 +9,14 @@ Ce dossier contient le code embarque pour fermer la boucle capteurs -> decision 
 3. Elle envoie les mesures a l'application PC via `POST /api/raspberry/sensors`.
 4. Elle capture une image avec la camera puis l'envoie a `POST /api/raspberry/photo`.
 5. L'application classe l'image avec EfficientNet-B0/ResNet-50 et renvoie les zones a traiter.
+6. Si la maladie detectee est aggravee par la pluie ou la chaleur instantanee, le serveur renvoie aussi `actuator_command`. La Raspberry applique alors directement `pluie` ou `chaleur`.
+
+La commande des plaques vient donc de deux sources:
+
+- seuil climatique simple: temperature, luminosite, pluie, humidite;
+- boucle maladie-climat: maladie detectee + meteo qui augmente son risque.
+
+Si le serveur devient temporairement indisponible, le client garde pendant `disease_command_ttl_seconds` la derniere commande maladie-climat issue de l'analyse image. Cela permet de continuer a proteger la culture localement.
 
 ## Installation rapide
 

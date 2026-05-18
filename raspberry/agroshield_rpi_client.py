@@ -36,14 +36,17 @@ def main(config_path):
     actuators = PlateActuators(config["pins"], config.get("servo_angles"))
     controller = HysteresisController(config.get("crop", "default"))
     next_photo = 0
+    disease_command = None
 
     while True:
         sensors = reader.read()
         sensors.update({"pi_id": config.get("pi_id", "agroshield-pi"), "crop": config.get("crop", "default")})
-        local_mode = controller.decide(sensors)
+        local_mode = controller.decide(sensors, disease_command)
         try:
             result = post_sensors(server_url, sensors)
-            mode = result.get("mechanism", {}).get("mode", local_mode)
+            command = result.get("actuator_command", {})
+            mode = command.get("mode") or result.get("mechanism", {}).get("mode", local_mode)
+            print(f"[SERVER] commande plaques={mode} source={command.get('source', 'unknown')} raison={command.get('reason', '')}")
         except Exception as exc:
             print(f"[WARN] Serveur indisponible, decision locale appliquee: {exc}")
             mode = local_mode
@@ -54,6 +57,21 @@ def main(config_path):
             try:
                 analysis = post_photo(server_url, image_path, config.get("zone_id", "A"))
                 print(f"[IA] {analysis.get('predicted_class')} confiance={analysis.get('confidence')}")
+                climate = analysis.get("climate_diagnosis") or {}
+                disease_command = {
+                    "timestamp": time.time(),
+                    "ttl_seconds": int(config.get("disease_command_ttl_seconds", 1800)),
+                    "recommended_mechanism": climate.get("recommended_mechanism", "repos"),
+                    "instant_risk": climate.get("instant_risk", 0),
+                    "heat_active": climate.get("heat", {}).get("active", False),
+                    "rain_active": climate.get("rain", {}).get("active", False),
+                }
+                print(
+                    "[IA->PLAQUES] "
+                    f"mode={disease_command['recommended_mechanism']} "
+                    f"risque={round(disease_command['instant_risk'] * 100)}% "
+                    f"chaleur={disease_command['heat_active']} pluie={disease_command['rain_active']}"
+                )
             except Exception as exc:
                 print(f"[WARN] Envoi image impossible: {exc}")
             next_photo = time.time() + int(config.get("photo_interval_seconds", 60))
