@@ -325,6 +325,115 @@ DISEASE_POLICIES = {
     },
 }
 
+CLIMATE_IMPACT_BY_CLASS = {
+    "Pepper__bell___Bacterial_spot": {
+        "label": "Poivron - tache bacterienne",
+        "heat": {"level": "modere a eleve", "bonus": 0.10, "trigger": "warm", "action": "Limiter le stress thermique; eviter que le feuillage reste humide sous chaleur."},
+        "rain": {"level": "eleve", "bonus": 0.22, "trigger": "wet", "action": "Incliner les plaques, reduire les eclaboussures et proteger les zones voisines."},
+        "mechanical": {"heat": "chaleur", "rain": "pluie"},
+        "rationale": "Les taches bacteriennes du poivron/tomate sont favorisees par temps chaud et humide et par les eclaboussures de pluie.",
+    },
+    "Pepper__bell___healthy": {
+        "label": "Poivron sain",
+        "heat": {"level": "stress physiologique", "bonus": 0.00, "trigger": "heat", "action": "Proteger seulement si le seuil chaleur du poivron est depasse."},
+        "rain": {"level": "stress hydrique", "bonus": 0.00, "trigger": "rain", "action": "Canaliser l'exces d'eau seulement si pluie intense."},
+        "mechanical": {"heat": "chaleur", "rain": "pluie"},
+        "rationale": "Aucune maladie detectee: le climat pilote la protection de culture, pas la propagation.",
+    },
+    "Potato___Early_blight": {
+        "label": "Pomme de terre - alternariose",
+        "heat": {"level": "modere", "bonus": 0.08, "trigger": "warm", "action": "Surveiller si chaleur accompagnee d'humidite foliaire."},
+        "rain": {"level": "modere a eleve", "bonus": 0.16, "trigger": "wet", "action": "Incliner si pluie/humidite elevee; traiter la zone et demi-zones voisines si risque monte."},
+        "mechanical": {"heat": "chaleur", "rain": "pluie"},
+        "rationale": "L'alternariose est favorisee par chaleur moderee a elevee, humidite et mouillure foliaire.",
+    },
+    "Potato___Late_blight": {
+        "label": "Pomme de terre - mildiou",
+        "heat": {"level": "faible a modere", "bonus": 0.04, "trigger": "stress", "action": "La chaleur seule n'est pas le facteur principal; surveiller le stress."},
+        "rain": {"level": "tres eleve", "bonus": 0.28, "trigger": "wet", "action": "Incliner immediatement vers le canal et traiter A, B et C."},
+        "mechanical": {"heat": "repos", "rain": "pluie"},
+        "rationale": "Le mildiou de la pomme de terre progresse fortement en conditions humides, pluvieuses et avec mouillure prolongee.",
+    },
+    "Potato___healthy": {
+        "label": "Pomme de terre saine",
+        "heat": {"level": "stress physiologique", "bonus": 0.00, "trigger": "heat", "action": "Proteger si chaleur superieure au seuil pomme de terre."},
+        "rain": {"level": "stress hydrique", "bonus": 0.00, "trigger": "rain", "action": "Canaliser si pluie intense pour eviter saturation."},
+        "mechanical": {"heat": "chaleur", "rain": "pluie"},
+        "rationale": "Aucune maladie detectee: action climatique classique.",
+    },
+    "Tomato_Bacterial_spot": {
+        "label": "Tomate - tache bacterienne",
+        "heat": {"level": "modere a eleve", "bonus": 0.10, "trigger": "warm", "action": "Reduire stress thermique et surveiller humidite."},
+        "rain": {"level": "eleve", "bonus": 0.22, "trigger": "wet", "action": "Incliner les plaques pour limiter eclaboussures et extension aux zones voisines."},
+        "mechanical": {"heat": "chaleur", "rain": "pluie"},
+        "rationale": "La tache bacterienne est favorisee par temps chaud et humide et se disperse par eau/eclaboussures.",
+    },
+    "Tomato_Early_blight": {
+        "label": "Tomate - alternariose",
+        "heat": {"level": "modere", "bonus": 0.08, "trigger": "warm", "action": "Surveiller chaleur + humidite; reduire stress."},
+        "rain": {"level": "modere a eleve", "bonus": 0.16, "trigger": "wet", "action": "Incliner en pluie/humidite; etendre surveillance aux demi-zones voisines."},
+        "mechanical": {"heat": "chaleur", "rain": "pluie"},
+        "rationale": "L'alternariose de la tomate augmente avec chaleur, humidite et mouillure foliaire.",
+    },
+    "Tomato_Late_blight": {
+        "label": "Tomate - mildiou",
+        "heat": {"level": "faible a modere", "bonus": 0.04, "trigger": "stress", "action": "La chaleur seule n'est pas le facteur principal; conserver la surveillance."},
+        "rain": {"level": "tres eleve", "bonus": 0.28, "trigger": "wet", "action": "Incliner immediatement et traiter A, B et C."},
+        "mechanical": {"heat": "repos", "rain": "pluie"},
+        "rationale": "Le mildiou tomate/pomme de terre est surtout favorise par humidite, pluie et mouillure prolongee.",
+    },
+    "Tomato_Leaf_Mold": {
+        "label": "Tomate - leaf mold",
+        "heat": {"level": "modere si serre chaude et humide", "bonus": 0.06, "trigger": "warm_humid", "action": "Eviter de fermer si cela augmente l'humidite; favoriser aeration."},
+        "rain": {"level": "eleve par humidite", "bonus": 0.20, "trigger": "humid", "action": "Reduire humidite foliaire; incliner si pluie/humidite depasse le seuil."},
+        "mechanical": {"heat": "repos", "rain": "pluie"},
+        "rationale": "La moisissure foliaire est fortement liee a l'humidite relative elevee.",
+    },
+    "Tomato_Septoria_leaf_spot": {
+        "label": "Tomate - septoriose",
+        "heat": {"level": "faible a modere", "bonus": 0.05, "trigger": "stress", "action": "La chaleur seule n'est pas prioritaire; surveiller si humidite simultanee."},
+        "rain": {"level": "eleve", "bonus": 0.24, "trigger": "wet", "action": "Incliner vers le canal; limiter eclaboussures; traiter zone + demi-zone voisine."},
+        "mechanical": {"heat": "repos", "rain": "pluie"},
+        "rationale": "La septoriose se propage par eclaboussures et mouillure prolongee des feuilles.",
+    },
+    "Tomato_Spider_mites_Two_spotted_spider_mite": {
+        "label": "Tomate - acariens tetranyques",
+        "heat": {"level": "eleve", "bonus": 0.20, "trigger": "hot_dry", "action": "Couvrir en forte chaleur pour reduire stress; inspecter zones voisines."},
+        "rain": {"level": "faible", "bonus": -0.04, "trigger": "rain", "action": "La pluie n'augmente pas directement la propagation; eviter humidite excessive."},
+        "mechanical": {"heat": "chaleur", "rain": "repos"},
+        "rationale": "Les acariens sont generalement favorises par conditions chaudes et seches.",
+    },
+    "Tomato__Target_Spot": {
+        "label": "Tomate - target spot",
+        "heat": {"level": "modere", "bonus": 0.08, "trigger": "warm", "action": "Surveiller si chaleur accompagnee d'humidite."},
+        "rain": {"level": "eleve", "bonus": 0.20, "trigger": "wet", "action": "Incliner en pluie; traiter zone et demi-zone voisine."},
+        "mechanical": {"heat": "chaleur", "rain": "pluie"},
+        "rationale": "Les taches foliaires sont aggravees par humidite, pluie et mouillure des feuilles.",
+    },
+    "Tomato__Tomato_YellowLeaf__Curl_Virus": {
+        "label": "Tomate - Yellow Leaf Curl Virus",
+        "heat": {"level": "eleve via vecteurs/stress", "bonus": 0.16, "trigger": "warm", "action": "Reduire stress thermique; renforcer surveillance A, B et C et controle aleurodes."},
+        "rain": {"level": "faible a modere", "bonus": 0.04, "trigger": "stress", "action": "La pluie n'est pas le vecteur principal; maintenir surveillance globale."},
+        "mechanical": {"heat": "chaleur", "rain": "repos"},
+        "rationale": "Le virus est transmis par aleurodes; la chaleur et le stress de culture renforcent le risque operationnel.",
+    },
+    "Tomato__Tomato_mosaic_virus": {
+        "label": "Tomate - virus mosaïque",
+        "heat": {"level": "faible indirect", "bonus": 0.03, "trigger": "stress", "action": "Action mecanique seulement si stress climatique depasse les seuils."},
+        "rain": {"level": "faible indirect", "bonus": 0.03, "trigger": "stress", "action": "La pluie n'est pas le vecteur principal; privilegier hygiene et isolation."},
+        "mechanical": {"heat": "repos", "rain": "repos"},
+        "rationale": "La mosaïque se transmet surtout mecaniquement/contact; le climat agit surtout comme stress secondaire.",
+    },
+    "Tomato_healthy": {
+        "label": "Tomate saine",
+        "heat": {"level": "stress physiologique", "bonus": 0.00, "trigger": "heat", "action": "Couvrir si temperature/luminosite depasse le seuil tomate."},
+        "rain": {"level": "stress hydrique", "bonus": 0.00, "trigger": "rain", "action": "Incliner si pluie intense pour canaliser l'eau."},
+        "mechanical": {"heat": "chaleur", "rain": "pluie"},
+        "rationale": "Aucune maladie detectee: seule la protection climatique normale est active.",
+    },
+}
+
+
 
 def classify_mechanical_mode(sensors, crop="default"):
     th = CROP_THRESHOLDS.get(crop, CROP_THRESHOLDS["default"])
@@ -406,22 +515,116 @@ def environmental_modifier(policy, sensors, crop="default"):
     return min(0.30, score), reasons
 
 
+def climate_state(sensors, crop="default"):
+    th = CROP_THRESHOLDS.get(crop, CROP_THRESHOLDS["default"])
+    heat = sensors["temperature"] >= th["temp_on"] or sensors["luminosity"] >= th["luminosity_on"]
+    rain = sensors["precipitation"] >= th["rain_on"] or sensors["humidity"] >= th["humidity_on"]
+    warm = sensors["temperature"] >= th["temp_on"] - 1
+    wet = sensors["precipitation"] >= th["rain_off"] or sensors["humidity"] >= th["humidity_off"]
+    hot_dry = sensors["temperature"] >= th["temp_on"] and sensors["humidity"] <= 45 and sensors["precipitation"] <= 2
+    return {
+        "heat": heat,
+        "rain": rain,
+        "warm": warm,
+        "wet": wet,
+        "hot_dry": hot_dry,
+        "thresholds": th,
+    }
+
+
+def trigger_active(trigger, state):
+    return {
+        "heat": state["heat"],
+        "rain": state["rain"],
+        "warm": state["warm"],
+        "wet": state["wet"],
+        "humid": state["wet"],
+        "warm_humid": state["warm"] and state["wet"],
+        "hot_dry": state["hot_dry"],
+        "stress": state["heat"] or state["rain"],
+    }.get(trigger, False)
+
+
+def climate_diagnosis_for_result(result, sensors, crop="default"):
+    profile = CLIMATE_IMPACT_BY_CLASS.get(result["predicted_class"])
+    if profile is None:
+        profile = {
+            "label": result["predicted_class"],
+            "heat": {"level": "non specialise", "bonus": 0.03, "trigger": "stress", "action": "Surveiller le stress climatique."},
+            "rain": {"level": "non specialise", "bonus": 0.03, "trigger": "stress", "action": "Surveiller humidite et precipitation."},
+            "mechanical": {"heat": "repos", "rain": "repos"},
+            "rationale": "Classe non mappee explicitement: regle prudente.",
+        }
+    state = climate_state(sensors, crop)
+    heat_active = trigger_active(profile["heat"]["trigger"], state)
+    rain_active = trigger_active(profile["rain"]["trigger"], state)
+    heat_bonus = profile["heat"]["bonus"] if heat_active else 0
+    rain_bonus = profile["rain"]["bonus"] if rain_active else 0
+    climate_bonus = max(-0.05, min(0.32, heat_bonus + rain_bonus))
+    base_policy = disease_policy(result["disease"])
+    base_risk = 0.0 if result["is_healthy"] else base_policy["risk"]
+    instant_risk = round(max(0, min(0.98, base_risk + climate_bonus)), 2)
+
+    recommended_mode = "repos"
+    if rain_active and profile["mechanical"].get("rain") != "repos":
+        recommended_mode = profile["mechanical"]["rain"]
+    elif heat_active and profile["mechanical"].get("heat") != "repos":
+        recommended_mode = profile["mechanical"]["heat"]
+    elif state["rain"]:
+        recommended_mode = "pluie"
+    elif state["heat"]:
+        recommended_mode = "chaleur"
+
+    return {
+        "class_label": profile["label"],
+        "current_weather": {
+            "temperature": sensors["temperature"],
+            "humidity": sensors["humidity"],
+            "precipitation": sensors["precipitation"],
+            "luminosity": sensors["luminosity"],
+            "heat_alert": state["heat"],
+            "rain_alert": state["rain"],
+        },
+        "heat": {
+            "active": heat_active,
+            "level": profile["heat"]["level"],
+            "risk_delta": round(heat_bonus, 2),
+            "action": profile["heat"]["action"],
+        },
+        "rain": {
+            "active": rain_active,
+            "level": profile["rain"]["level"],
+            "risk_delta": round(rain_bonus, 2),
+            "action": profile["rain"]["action"],
+        },
+        "base_risk": round(base_risk, 2),
+        "climate_delta": round(climate_bonus, 2),
+        "instant_risk": instant_risk,
+        "recommended_mechanism": recommended_mode,
+        "rationale": profile["rationale"],
+    }
+
+
 def disease_informed_mechanical_mode(sensors, crop="default"):
     base_mode = classify_mechanical_mode(sensors, crop)
     detection = latest_active_disease()
     if not detection:
         return base_mode, []
 
-    policy = disease_policy(detection.get("disease", ""))
-    modifier, reasons = environmental_modifier(policy, sensors, crop)
-    if modifier < 0.12:
-        return base_mode, reasons
+    result_like = {
+        "predicted_class": detection.get("predicted_class", ""),
+        "disease": detection.get("disease", ""),
+        "is_healthy": detection.get("is_healthy", False),
+    }
+    diagnosis = climate_diagnosis_for_result(result_like, sensors, crop)
+    if diagnosis["climate_delta"] < 0.12:
+        return base_mode, [diagnosis["rationale"]]
     if base_mode != "repos":
-        return base_mode, reasons
-    bias = policy.get("mechanical_bias", "repos")
-    if bias in {"pluie", "chaleur"}:
-        return bias, reasons
-    return base_mode, reasons
+        return base_mode, [diagnosis["rationale"]]
+    mode = diagnosis["recommended_mechanism"]
+    if mode in {"pluie", "chaleur"}:
+        return mode, [diagnosis["rationale"]]
+    return base_mode, [diagnosis["rationale"]]
 
 
 def apply_mechanical_state(mode):
@@ -456,16 +659,20 @@ def decorate_sensor_payload(data, crop="default"):
     active_detection = latest_active_disease()
     disease_context = None
     if active_detection:
-        policy = disease_policy(active_detection.get("disease", ""))
-        modifier, reasons = environmental_modifier(policy, data, crop)
+        result_like = {
+            "predicted_class": active_detection.get("predicted_class", ""),
+            "disease": active_detection.get("disease", ""),
+            "is_healthy": active_detection.get("is_healthy", False),
+        }
+        diagnosis = climate_diagnosis_for_result(result_like, data, crop)
         disease_context = {
             "disease": active_detection.get("disease"),
             "zone": active_detection.get("zone_id"),
-            "base_risk": policy["risk"],
-            "weather_modifier": round(modifier, 2),
-            "combined_risk": round(min(0.98, policy["risk"] + modifier), 2),
-            "weather_reasons": reasons,
-            "mechanical_bias": policy.get("mechanical_bias", "repos"),
+            "base_risk": diagnosis["base_risk"],
+            "weather_modifier": diagnosis["climate_delta"],
+            "combined_risk": diagnosis["instant_risk"],
+            "weather_reasons": [diagnosis["rationale"]],
+            "mechanical_bias": diagnosis["recommended_mechanism"],
         }
     data["thresholds"] = th
     data["mechanism"] = {
@@ -712,17 +919,16 @@ def analyze_image_object(img, zone_id="A", lat=33.5731, lng=-7.5898):
     result = predict(img)
     sensors_now = sensor_history[-1] if sensor_history else get_sensors()
     policy = disease_policy(result["disease"])
-    weather_modifier, weather_reasons = environmental_modifier(
-        policy,
-        sensors_now,
-        system_state["current_crop"],
-    )
+    climate_diagnosis = climate_diagnosis_for_result(result, sensors_now, system_state["current_crop"])
     treatment = get_treatment_zones(zone_id, result["confidence"], result["is_healthy"], result["disease"])
     if not result["is_healthy"]:
-        boosted = round(min(0.98, treatment["propagation_probability"] + weather_modifier), 2)
+        boosted = round(min(0.98, treatment["propagation_probability"] + climate_diagnosis["climate_delta"]), 2)
         treatment["propagation_probability"] = boosted
-        treatment["weather_modifier"] = round(weather_modifier, 2)
-        treatment["weather_reasons"] = weather_reasons
+        treatment["weather_modifier"] = climate_diagnosis["climate_delta"]
+        treatment["weather_reasons"] = [
+            f"Chaleur: {climate_diagnosis['heat']['level']}",
+            f"Pluie/humidite: {climate_diagnosis['rain']['level']}",
+        ]
         treatment["policy_source"] = policy.get("source", "")
         if boosted >= 0.84 and treatment["zones"] != ["A", "B", "C"]:
             treatment["recommendation"] += " Conditions actuelles favorables: etendre la surveillance a toute la culture."
@@ -740,7 +946,7 @@ def analyze_image_object(img, zone_id="A", lat=33.5731, lng=-7.5898):
         "treatment": treatment,
     }
     detections_db.append(det)
-    return {**result, "zone": det, "treatment": treatment}
+    return {**result, "zone": det, "treatment": treatment, "climate_diagnosis": climate_diagnosis}
 
 
 @app.route("/")

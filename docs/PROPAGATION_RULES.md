@@ -18,7 +18,30 @@ La culture est divisée en trois zones: A, B et C. Après chaque détection foli
 
 ## Influence de la météo
 
-Le serveur calcule un `weather_modifier` de 0 à 0.30 selon la maladie et les capteurs. Ce modificateur augmente la probabilité de propagation et peut orienter le mode mécanique automatique.
+Le serveur calcule maintenant un diagnostic instantané par classe exacte du dataset. Chaque classe possède deux blocs:
+
+- influence de la chaleur;
+- influence de la pluie / humidité.
+
+Le résultat affiché après une image indique donc si la chaleur est active, si la pluie est active, le risque instantané maladie-climat et l'action mécanique proposée.
+
+Classes couvertes:
+
+- `Pepper__bell___Bacterial_spot`
+- `Pepper__bell___healthy`
+- `Potato___Early_blight`
+- `Potato___Late_blight`
+- `Potato___healthy`
+- `Tomato_Bacterial_spot`
+- `Tomato_Early_blight`
+- `Tomato_Late_blight`
+- `Tomato_Leaf_Mold`
+- `Tomato_Septoria_leaf_spot`
+- `Tomato_Spider_mites_Two_spotted_spider_mite`
+- `Tomato__Target_Spot`
+- `Tomato__Tomato_YellowLeaf__Curl_Virus`
+- `Tomato__Tomato_mosaic_virus`
+- `Tomato_healthy`
 
 Exemple: une Septoria détectée en zone A avec forte pluie donne `Zone A complète + moitié gauche de la zone B`, puis augmente le risque parce que l'eau disperse les spores par éclaboussures.
 

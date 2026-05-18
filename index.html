@@ -32,7 +32,8 @@
       margin: 0;
       min-height: 100vh;
       background:
-        linear-gradient(180deg, rgba(247,250,245,.94), rgba(232,241,234,.96)),
+        linear-gradient(180deg, rgba(247,250,245,.88), rgba(232,241,234,.93)),
+        url("/assets/agroshield-control-background.png") center top / cover fixed,
         repeating-linear-gradient(90deg, rgba(47,125,69,.08) 0 1px, transparent 1px 92px),
         repeating-linear-gradient(0deg, rgba(47,125,69,.06) 0 1px, transparent 1px 78px);
     }
@@ -44,7 +45,8 @@
       --muted: #adc0b3;
       --line: #304236;
       background:
-        linear-gradient(180deg, rgba(13,23,17,.97), rgba(23,37,28,.98)),
+        linear-gradient(180deg, rgba(13,23,17,.88), rgba(23,37,28,.95)),
+        url("/assets/agroshield-control-background.png") center top / cover fixed,
         repeating-linear-gradient(90deg, rgba(139,214,111,.10) 0 1px, transparent 1px 92px),
         repeating-linear-gradient(0deg, rgba(139,214,111,.08) 0 1px, transparent 1px 78px);
     }
@@ -61,6 +63,7 @@
       background:
         radial-gradient(circle at 15% 15%, rgba(139, 214, 111, .30), transparent 28%),
         radial-gradient(circle at 85% 20%, rgba(47, 128, 237, .16), transparent 30%),
+        url("/assets/agroshield-control-background.png") center / cover,
         #f6faf5;
     }
     .login.hidden { display: none; }
@@ -729,6 +732,21 @@
     body.dark .upload, body.dark .result, body.dark .zone-map, body.dark .legend-item { background:#17231b; }
     .result h4 { margin: 0 0 10px; font-size: 16px; }
     .result p { margin: 5px 0; color: var(--muted); line-height: 1.45; }
+    .climate-diagnosis {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .climate-box {
+      padding:12px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:rgba(255,255,255,.62);
+    }
+    body.dark .climate-box { background:rgba(20,32,25,.72); }
+    .climate-box b { display:block; margin-bottom:5px; }
+    .risk-line { margin-top:12px; font-weight:900; color:var(--green-deep); }
     .table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .table th, .table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
     .table th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
@@ -1283,6 +1301,7 @@
         if (!res.ok) throw new Error(data.error || "Analyse impossible");
         const status = data.is_healthy ? "Feuille saine" : "Maladie détectée";
         const zones = data.treatment.zones.length ? data.treatment.zones.join(", ") : "Surveillance uniquement";
+        const climate = data.climate_diagnosis;
         resultBox.innerHTML = `
           <h4>${status}</h4>
           <p><strong>Classe prédite:</strong> ${data.predicted_class}</p>
@@ -1290,6 +1309,20 @@
           <p><strong>Traitement précis:</strong> ${data.treatment.treatment_summary}</p>
           <p><strong>Zones concernées:</strong> ${zones}</p>
           <p><strong>Niveau de propagation:</strong> ${data.treatment.spread_level}</p>
+          <div class="climate-diagnosis">
+            <div class="climate-box">
+              <b>Influence chaleur</b>
+              <p>${climate.heat.active ? "Active" : "Non critique"} - ${climate.heat.level}</p>
+              <p>${climate.heat.action}</p>
+            </div>
+            <div class="climate-box">
+              <b>Influence pluie / humidité</b>
+              <p>${climate.rain.active ? "Active" : "Non critique"} - ${climate.rain.level}</p>
+              <p>${climate.rain.action}</p>
+            </div>
+          </div>
+          <p class="risk-line">Risque instantané maladie-climat: ${Math.round(climate.instant_risk * 100)}% | Action plaques proposée: ${climate.recommended_mechanism}</p>
+          <p><strong>Justification:</strong> ${climate.rationale}</p>
           <p><strong>Décision agronomique:</strong> ${data.treatment.recommendation}</p>
           ${data.demo ? "<p>Mode démonstration: modèles IA non chargés.</p>" : ""}
         `;

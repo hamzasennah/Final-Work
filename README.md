@@ -42,6 +42,7 @@ Pour un accès depuis un autre appareil du même réseau, utiliser `http://<adre
 - Dashboard capteurs avec température, humidité, précipitation, luminosité, état global et mini tendances.
 - Animation mécanique fidèle au prototype: repos à 0°, plaques horizontales à 90° en forte chaleur, plaques inclinées en pluie pour guider l’eau vers le canal central puis le réservoir.
 - Diagnostic IA par image avec aperçu, classe prédite, confiance, zones A/B/C à traiter et historique avec date + heure.
+- Diagnostic instantané maladie-climat pour les 15 classes: effet chaleur, effet pluie/humidité, risque ajusté et action mécanique proposée.
 - Seuils par culture: tomate, poivron et pomme de terre avec hystérésis pour éviter les oscillations des servomoteurs.
 - Boucle intégrée maladie-météo: la pluie, l’humidité et la chaleur ne sont pas traitées séparément du diagnostic, elles modifient le risque de propagation et peuvent déclencher une action mécanique.
 - Endpoints Raspberry Pi pour les capteurs et la caméra.
@@ -87,7 +88,7 @@ python agroshield_rpi_client.py --config config.json
 
 Le client lit les capteurs, applique une décision locale avec hystérésis si le serveur est indisponible, actionne les servos et envoie les photos caméra pour affichage immédiat dans l’interface.
 
-## Logique de décision
+## Logique de décision maladie-climat
 
 Le mode automatique combine:
 
@@ -101,6 +102,13 @@ Exemples:
 - Pluie intense ou humidité élevée + Septoria: plaques inclinées, canal actif, risque de propagation augmenté.
 - Forte chaleur + pression de virus transmis par aleurodes: plaques horizontales si le seuil chaleur est dépassé.
 - Late blight en climat humide: traitement A/B/C, car la propagation est très élevée.
+
+Après chaque image, l'application affiche deux blocs séparés:
+
+- `Influence chaleur`: active ou non, niveau d'aggravation, action adaptée.
+- `Influence pluie / humidité`: active ou non, niveau d'aggravation, action adaptée.
+
+La matrice couvre les 15 classes du dataset PlantVillage utilisées par EfficientNet-B0 et ResNet-50, y compris les classes `healthy` où le système conclut à une protection climatique sans propagation maladie.
 
 Formule de confiance IA:
 
