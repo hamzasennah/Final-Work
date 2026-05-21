@@ -28,6 +28,10 @@ python3 usb_camera_upload.py --server http://ADRESSE_IP_DU_PC:5000 --zone A
 La route `/upload` sauvegarde l'image dans `C:\Users\pc\Desktop\reception des images`,
 lance l'analyse IA et met a jour l'onglet Diagnostic automatiquement.
 
+Si la capture USB contient un PC, un document ou un objet hors culture, le serveur
+renvoie `out_of_domain=true`. Dans ce cas la Raspberry ne doit appliquer aucune
+commande maladie: elle continue seulement la logique capteurs/climat normale.
+
 La commande des plaques vient donc de deux sources:
 
 - seuil climatique simple: temperature, luminosite, pluie, humidite;

@@ -42,6 +42,7 @@ Pour un accès depuis un autre appareil du même réseau, utiliser `http://<adre
 - Dashboard capteurs avec température, humidité, précipitation, luminosité, état global et mini tendances.
 - Animation mécanique fidèle au prototype: repos à 0°, plaques horizontales à 90° en forte chaleur, plaques inclinées en pluie pour guider l’eau vers le canal central puis le réservoir.
 - Diagnostic IA par image avec aperçu, classe prédite, confiance, zones A/B/C à traiter et historique avec date + heure.
+- Contrôle hors domaine: si la caméra capture un PC, un document, un objet ou une image qui ne ressemble pas à une feuille du dataset, l'application renvoie `Hors_dataset_non_vegetal` et ne déclenche aucune intervention maladie.
 - Diagnostic instantané maladie-climat pour les 15 classes: effet chaleur, effet pluie/humidité, risque ajusté et action mécanique proposée.
 - Seuils par culture: tomate, poivron et pomme de terre avec hystérésis pour éviter les oscillations des servomoteurs.
 - Boucle intégrée maladie-météo: la pluie, l’humidité et la chaleur ne sont pas traitées séparément du diagnostic, elles modifient le risque de propagation et peuvent déclencher une action mécanique.

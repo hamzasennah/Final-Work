@@ -57,6 +57,12 @@ def main(config_path):
             try:
                 analysis = post_photo(server_url, image_path, config.get("zone_id", "A"))
                 print(f"[IA] {analysis.get('predicted_class')} confiance={analysis.get('confidence')}")
+                if analysis.get("out_of_domain") or analysis.get("is_valid_leaf") is False:
+                    disease_command = None
+                    reasons = analysis.get("domain_status", {}).get("reasons", [])
+                    print(f"[IA] Image hors dataset, aucune commande maladie. Raisons: {' | '.join(reasons)}")
+                    next_photo = time.time() + int(config.get("photo_interval_seconds", 60))
+                    continue
                 climate = analysis.get("climate_diagnosis") or {}
                 disease_command = {
                     "timestamp": time.time(),

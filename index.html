@@ -1289,10 +1289,25 @@
 
     function renderAnalysisResult(data, label = "") {
       const resultBox = document.getElementById("resultBox");
-      const status = data.is_healthy ? "Feuille saine" : "Maladie détectée";
+      const rejected = data.out_of_domain || data.is_valid_leaf === false || data.domain_status?.accepted === false;
+      const status = rejected ? "Image hors dataset" : (data.is_healthy ? "Feuille saine" : "Maladie détectée");
       const zones = data.treatment.zones.length ? data.treatment.zones.join(", ") : "Surveillance uniquement";
       const climate = data.climate_diagnosis;
       const imageUrl = data.zone?.image_url ? `<img class="result-image" src="${data.zone.image_url}" alt="Image reçue par Raspberry">` : "";
+      const domainStatus = rejected ? `
+        <div class="climate-diagnosis">
+          <div class="climate-box">
+            <b>Controle hors domaine</b>
+            <p>${data.domain_status?.label || "Image non vegetale ou hors dataset"}</p>
+            <p>${(data.domain_status?.reasons || []).join(" | ") || "Recapturer une feuille visible."}</p>
+          </div>
+          <div class="climate-box">
+            <b>Decision systeme</b>
+            <p>Aucune maladie validee.</p>
+            <p>Aucune zone traitee et aucune commande plaques liee a la maladie.</p>
+          </div>
+        </div>
+      ` : "";
       resultBox.innerHTML = `
         ${imageUrl}
         <h4>${label ? `${label} - ` : ""}${status}</h4>
@@ -1301,6 +1316,7 @@
         <p><strong>Traitement précis:</strong> ${data.treatment.treatment_summary}</p>
         <p><strong>Zones concernées:</strong> ${zones}</p>
         <p><strong>Niveau de propagation:</strong> ${data.treatment.spread_level}</p>
+        ${domainStatus}
         <div class="climate-diagnosis">
           <div class="climate-box">
             <b>Influence chaleur</b>
@@ -1366,7 +1382,7 @@
           <td>${d.zone_id}</td>
           <td>${d.predicted_class || (d.plant + " - " + d.disease)}</td>
           <td>${Math.round(d.confidence * 100)}%</td>
-          <td>${d.is_healthy ? "Surveillance" : d.treatment.treatment_summary}</td>
+          <td>${d.out_of_domain || d.is_valid_leaf === false ? "Image hors dataset - aucune action" : (d.is_healthy ? "Surveillance" : d.treatment.treatment_summary)}</td>
         </tr>
       `).join("");
     }

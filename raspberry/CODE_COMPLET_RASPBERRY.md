@@ -158,6 +158,12 @@ def main(config_path):
             try:
                 analysis = post_photo(server_url, image_path, config.get("zone_id", "A"))
                 print(f"[IA] {analysis.get('predicted_class')} confiance={analysis.get('confidence')}")
+                if analysis.get("out_of_domain") or analysis.get("is_valid_leaf") is False:
+                    disease_command = None
+                    reasons = analysis.get("domain_status", {}).get("reasons", [])
+                    print(f"[IA] Image hors dataset, aucune commande maladie. Raisons: {' | '.join(reasons)}")
+                    next_photo = time.time() + int(config.get("photo_interval_seconds", 60))
+                    continue
                 climate = analysis.get("climate_diagnosis") or {}
                 disease_command = {
                     "timestamp": time.time(),
@@ -502,3 +508,13 @@ maintenant les routes `/upload`, `/api/sensors`, `/api/health` et l'analyse IA.
 Si une image est quand meme seulement deposee dans
 `C:\Users\pc\Desktop\reception des images`, l'interface la detecte aussi par
 scan automatique et affiche le test sans selection manuelle.
+
+Si la reponse contient:
+
+```json
+{"out_of_domain": true, "predicted_class": "Hors_dataset_non_vegetal"}
+```
+
+cela signifie que la camera a capture un objet hors dataset: PC, document,
+clavier, mur, etc. Le serveur bloque alors le faux diagnostic, aucune zone
+maladie n'est traitee et aucune commande plaques liee a la maladie n'est envoyee.

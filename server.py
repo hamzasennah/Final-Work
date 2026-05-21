@@ -462,7 +462,7 @@ def classify_mechanical_mode(sensors, crop="default"):
 def latest_active_disease(max_age_seconds=1800):
     now = datetime.datetime.now()
     for detection in reversed(detections_db):
-        if detection.get("is_healthy"):
+        if detection.get("is_healthy") or detection.get("out_of_domain") or detection.get("is_valid_leaf") is False:
             continue
         try:
             detected_at = datetime.datetime.fromisoformat(detection["timestamp"])
@@ -550,6 +550,35 @@ def trigger_active(trigger, state):
 
 
 def climate_diagnosis_for_result(result, sensors, crop="default"):
+    if result.get("out_of_domain") or result.get("is_valid_leaf") is False:
+        return {
+            "class_label": "Image hors dataset",
+            "current_weather": {
+                "temperature": sensors["temperature"],
+                "humidity": sensors["humidity"],
+                "precipitation": sensors["precipitation"],
+                "luminosity": sensors["luminosity"],
+                "heat_alert": False,
+                "rain_alert": False,
+            },
+            "heat": {
+                "active": False,
+                "level": "non applicable",
+                "risk_delta": 0,
+                "action": "Aucune action maladie: image non reconnue comme feuille de tomate, poivron ou pomme de terre.",
+            },
+            "rain": {
+                "active": False,
+                "level": "non applicable",
+                "risk_delta": 0,
+                "action": "Aucune action maladie: verifier la prise de vue et recapturer une feuille.",
+            },
+            "base_risk": 0,
+            "climate_delta": 0,
+            "instant_risk": 0,
+            "recommended_mechanism": "repos",
+            "rationale": "L'image est rejetee par le controle hors domaine; elle ne pilote pas les plaques.",
+        }
     profile = CLIMATE_IMPACT_BY_CLASS.get(result["predicted_class"])
     if profile is None:
         profile = {
@@ -782,6 +811,9 @@ def mock_predict():
         "disease": disease,
         "confidence": confidence,
         "is_healthy": healthy,
+        "is_valid_leaf": True,
+        "out_of_domain": False,
+        "domain_status": {"accepted": True, "label": "mode demonstration", "reasons": []},
         "demo": True,
     }
 
@@ -800,6 +832,98 @@ def parse_class_name(class_name):
     return plant.replace("__", " ").replace("_", " "), disease.replace("__", " ").replace("_", " ")
 
 
+def probability_margin(probs):
+    values = probs.topk(2).values.tolist()
+    if len(values) < 2:
+        return float(values[0]) if values else 0.0
+    return float(values[0] - values[1])
+
+
+def plant_pixel_evidence(pil_image):
+    sample = pil_image.convert("RGB").resize((160, 160))
+    hsv = sample.convert("HSV")
+    pixels = list(hsv.getdata())
+    total = max(1, len(pixels))
+    plant_like = 0
+    saturated = 0
+    low_saturation = 0
+    very_bright = 0
+    for h, s, v in pixels:
+        hue = h * 360 / 255
+        if s >= 38 and v >= 30:
+            saturated += 1
+        if s <= 28:
+            low_saturation += 1
+        if v >= 230:
+            very_bright += 1
+        green_leaf = 45 <= hue <= 175 and s >= 35 and v >= 35
+        yellow_or_brown_leaf = 18 <= hue < 55 and s >= 38 and 35 <= v <= 230
+        reddish_brown_spot = (hue < 18 or hue >= 330) and s >= 45 and 35 <= v <= 210
+        if green_leaf or yellow_or_brown_leaf or reddish_brown_spot:
+            plant_like += 1
+    return {
+        "plant_pixel_ratio": round(plant_like / total, 4),
+        "saturation_ratio": round(saturated / total, 4),
+        "low_saturation_ratio": round(low_saturation / total, 4),
+        "very_bright_ratio": round(very_bright / total, 4),
+    }
+
+
+def domain_status_for_image(pil_image, eff_conf, res_conf, eff_margin, res_margin, agree):
+    visual = plant_pixel_evidence(pil_image)
+    final_conf = max(eff_conf, res_conf)
+    avg_margin = (eff_margin + res_margin) / 2
+    plant_ratio = visual["plant_pixel_ratio"]
+    saturation_ratio = visual["saturation_ratio"]
+    reasons = []
+
+    if plant_ratio < 0.035:
+        reasons.append("l'image contient trop peu de pixels compatibles avec une feuille ou une culture")
+    if plant_ratio < 0.08 and saturation_ratio < 0.16:
+        reasons.append("l'image ressemble davantage a un objet/ecran/document qu'a une feuille")
+    if not agree and final_conf < 0.78:
+        reasons.append("EfficientNet-B0 et ResNet-50 ne sont pas assez coherents pour valider la classe")
+    if avg_margin < 0.08 and final_conf < 0.88:
+        reasons.append("la marge entre la meilleure classe et les classes voisines est insuffisante")
+
+    accepted = not reasons
+    if plant_ratio >= 0.12 and final_conf >= 0.82 and avg_margin >= 0.12:
+        accepted = True
+        reasons = []
+    elif agree and plant_ratio >= 0.08 and final_conf >= 0.70 and avg_margin >= 0.10:
+        accepted = True
+        reasons = []
+
+    return {
+        "accepted": accepted,
+        "label": "image foliaire valide" if accepted else "image hors dataset / non vegetale",
+        "reasons": reasons,
+        "plant_probability": round(min(1.0, plant_ratio / 0.18), 2),
+        "model_confidence": round(final_conf, 4),
+        "ensemble_agreement": agree,
+        "average_margin": round(avg_margin, 4),
+        **visual,
+    }
+
+
+def out_of_domain_prediction(domain_status, eff_pred, eff_conf, res_pred, res_conf, top3_eff, top3_res, agree):
+    return {
+        "predicted_class": "Hors_dataset_non_vegetal",
+        "efficientnet": {"prediction": eff_pred, "confidence": eff_conf, "top3": top3_eff},
+        "resnet": {"prediction": res_pred, "confidence": res_conf, "top3": top3_res},
+        "agreement": agree,
+        "agreement_score": "rejete",
+        "plant": "Hors domaine",
+        "disease": "Image non reconnue",
+        "confidence": 0.0,
+        "is_healthy": True,
+        "is_valid_leaf": False,
+        "out_of_domain": True,
+        "domain_status": domain_status,
+        "demo": False,
+    }
+
+
 def predict(pil_image):
     if not MODEL_STATUS["available"] or eff_model is None or preprocess is None:
         return mock_predict()
@@ -810,6 +934,7 @@ def predict(pil_image):
     eff_top = eff_probs.topk(3)
     eff_pred = CLASSES[eff_top.indices[0].item()]
     eff_conf = float(eff_top.values[0])
+    eff_margin = probability_margin(eff_probs)
     top3_eff = [
         {"class": CLASSES[i].replace("__", " - ").replace("_", " "), "confidence": float(eff_probs[i])}
         for i in eff_top.indices.tolist()
@@ -821,6 +946,7 @@ def predict(pil_image):
         res_top = res_probs.topk(3)
         res_pred = CLASSES[res_top.indices[0].item()]
         res_conf = float(res_top.values[0])
+        res_margin = probability_margin(res_probs)
         top3_res = [
             {"class": CLASSES[i].replace("__", " - ").replace("_", " "), "confidence": float(res_probs[i])}
             for i in res_top.indices.tolist()
@@ -832,11 +958,16 @@ def predict(pil_image):
     else:
         res_pred = eff_pred
         res_conf = eff_conf
+        res_margin = eff_margin
         top3_res = top3_eff
         agree = True
         final_pred = eff_pred
         final_conf = eff_conf
         agree_score = "1/1"
+
+    domain_status = domain_status_for_image(pil_image, eff_conf, res_conf, eff_margin, res_margin, agree)
+    if not domain_status["accepted"]:
+        return out_of_domain_prediction(domain_status, eff_pred, eff_conf, res_pred, res_conf, top3_eff, top3_res, agree)
 
     plant, disease = parse_class_name(final_pred)
     return {
@@ -849,6 +980,9 @@ def predict(pil_image):
         "disease": disease,
         "confidence": final_conf,
         "is_healthy": "healthy" in final_pred.lower(),
+        "is_valid_leaf": True,
+        "out_of_domain": False,
+        "domain_status": domain_status,
         "demo": False,
     }
 
@@ -949,7 +1083,15 @@ def analyze_image_object(img, zone_id="A", lat=33.5731, lng=-7.5898, source="man
     policy = disease_policy(result["disease"])
     climate_diagnosis = climate_diagnosis_for_result(result, sensors_now, system_state["current_crop"])
     treatment = get_treatment_zones(zone_id, result["confidence"], result["is_healthy"], result["disease"])
-    if not result["is_healthy"]:
+    if result.get("out_of_domain") or result.get("is_valid_leaf") is False:
+        treatment.update(
+            {
+                "priority": "rejet",
+                "recommendation": "Image hors dataset: recapturer une feuille de tomate, poivron ou pomme de terre avant diagnostic.",
+                "treatment_summary": "Aucune zone a traiter.",
+            }
+        )
+    elif not result["is_healthy"]:
         boosted = round(min(0.98, treatment["propagation_probability"] + climate_diagnosis["climate_delta"]), 2)
         treatment["propagation_probability"] = boosted
         treatment["weather_modifier"] = climate_diagnosis["climate_delta"]
@@ -970,6 +1112,9 @@ def analyze_image_object(img, zone_id="A", lat=33.5731, lng=-7.5898, source="man
         "predicted_class": result["predicted_class"],
         "confidence": result["confidence"],
         "is_healthy": result["is_healthy"],
+        "is_valid_leaf": result.get("is_valid_leaf", True),
+        "out_of_domain": result.get("out_of_domain", False),
+        "domain_status": result.get("domain_status", {}),
         "agreement_score": result["agreement_score"],
         "treatment": treatment,
         "source": source,
@@ -1221,7 +1366,10 @@ def disease_map():
         {
             "detections": detections_db,
             "total_scanned": len(detections_db),
-            "infected_zones": sum(1 for d in detections_db if not d["is_healthy"]),
+            "infected_zones": sum(
+                1 for d in detections_db
+                if not d["is_healthy"] and not d.get("out_of_domain") and d.get("is_valid_leaf", True)
+            ),
             "sensors": get_sensors(),
             "zones_info": ZONES,
         }
