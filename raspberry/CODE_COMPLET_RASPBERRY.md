@@ -456,3 +456,49 @@ curl http://ADRESSE_IP_DU_PC:5000/api/health
 
 Si la reponse contient `"status": "ok"`, la connexion Raspberry -> application est bonne.
 
+## 13. Test camera USB vers l'application sans upload manuel
+
+Si vous utilisez une camera USB avec OpenCV, utilisez le fichier
+`usb_camera_upload.py`. Il envoie l'image vers `POST /upload`, qui est
+maintenant integre au serveur AgroShield principal.
+
+```bash
+cd raspberry
+python3 usb_camera_upload.py --server http://ADRESSE_IP_DU_PC:5000 --zone A
+```
+
+Code minimal equivalent:
+
+```python
+import cv2
+import requests
+
+PC_IP = "10.116.177.98"
+URL = f"http://{PC_IP}:5000/upload"
+IMAGE_NAME = "capture.jpg"
+
+cap = cv2.VideoCapture(0)
+ret, frame = cap.read()
+
+if ret:
+    cv2.imwrite(IMAGE_NAME, frame)
+    with open(IMAGE_NAME, "rb") as img:
+        response = requests.post(
+            URL,
+            files={"image": img},
+            data={"zone_id": "A"},
+            timeout=30,
+        )
+    print(response.text)
+else:
+    print("Erreur camera")
+
+cap.release()
+```
+
+Important: lancer `C:\Users\pc\Desktop\final work\server.py`, pas le petit
+serveur de test qui sauvegarde seulement les fichiers. AgroShield possede
+maintenant les routes `/upload`, `/api/sensors`, `/api/health` et l'analyse IA.
+Si une image est quand meme seulement deposee dans
+`C:\Users\pc\Desktop\reception des images`, l'interface la detecte aussi par
+scan automatique et affiche le test sans selection manuelle.

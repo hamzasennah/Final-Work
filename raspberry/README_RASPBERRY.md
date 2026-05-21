@@ -11,6 +11,23 @@ Ce dossier contient le code embarque pour fermer la boucle capteurs -> decision 
 5. L'application classe l'image avec EfficientNet-B0/ResNet-50 et renvoie les zones a traiter.
 6. Si la maladie detectee est aggravee par la pluie ou la chaleur instantanee, le serveur renvoie aussi `actuator_command`. La Raspberry applique alors directement `pluie` ou `chaleur`.
 
+## Camera USB simple
+
+Pour le test montre dans RealVNC/Thonny, lancez le serveur principal sur le PC:
+
+```bash
+python server.py
+```
+
+Puis executez sur Raspberry:
+
+```bash
+python3 usb_camera_upload.py --server http://ADRESSE_IP_DU_PC:5000 --zone A
+```
+
+La route `/upload` sauvegarde l'image dans `C:\Users\pc\Desktop\reception des images`,
+lance l'analyse IA et met a jour l'onglet Diagnostic automatiquement.
+
 La commande des plaques vient donc de deux sources:
 
 - seuil climatique simple: temperature, luminosite, pluie, humidite;

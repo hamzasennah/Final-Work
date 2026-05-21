@@ -5,6 +5,7 @@
 
 from flask import Flask, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
 from PIL import Image
 from pathlib import Path
 from collections import deque
@@ -32,6 +33,7 @@ app = Flask(__name__)
 CORS(app)
 
 BASE_DIR = Path(__file__).parent
+RECEIVED_IMAGES_DIR = Path(r"C:\Users\pc\Desktop\reception des images")
 MODELS_DIR = BASE_DIR / "models"
 EFF_PTH_CANDIDATES = [
     MODELS_DIR / "efficientnet_b0.pth",
@@ -222,6 +224,8 @@ system_state = {
 HYSTERESIS_DELAY = 8
 sensor_history = deque(maxlen=30)
 detections_db = []
+latest_analysis = None
+processed_received_images = set()
 latest_raspberry_payload = {"timestamp": 0, "data": None}
 
 ZONES = {
@@ -938,7 +942,8 @@ def get_treatment_zones(zone_id, confidence, is_healthy, disease=""):
     }
 
 
-def analyze_image_object(img, zone_id="A", lat=33.5731, lng=-7.5898):
+def analyze_image_object(img, zone_id="A", lat=33.5731, lng=-7.5898, source="manual", image_url=None, filename=None):
+    global latest_analysis
     result = predict(img)
     sensors_now = sensor_history[-1] if sensor_history else get_sensors()
     policy = disease_policy(result["disease"])
@@ -967,9 +972,50 @@ def analyze_image_object(img, zone_id="A", lat=33.5731, lng=-7.5898):
         "is_healthy": result["is_healthy"],
         "agreement_score": result["agreement_score"],
         "treatment": treatment,
+        "source": source,
+        "image_url": image_url,
+        "filename": filename,
     }
     detections_db.append(det)
-    return {**result, "zone": det, "treatment": treatment, "climate_diagnosis": climate_diagnosis}
+    latest_analysis = {**result, "zone": det, "treatment": treatment, "climate_diagnosis": climate_diagnosis}
+    return latest_analysis
+
+
+def analyze_received_image_path(path, zone_id="A", source="raspberry_usb_upload"):
+    img = Image.open(path).convert("RGB")
+    return analyze_image_object(
+        img,
+        zone_id=zone_id,
+        source=source,
+        image_url=f"/received_images/{path.name}",
+        filename=path.name,
+    )
+
+
+def scan_received_images_once(zone_id="A"):
+    RECEIVED_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    candidates = [
+        path for path in RECEIVED_IMAGES_DIR.iterdir()
+        if path.is_file() and path.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+    ]
+    candidates.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+    if not candidates:
+        return None
+    path = candidates[0]
+    signature = f"{path.name}:{path.stat().st_mtime_ns}:{path.stat().st_size}"
+    if signature in processed_received_images:
+        return None
+    result = analyze_received_image_path(path, zone_id=zone_id)
+    processed_received_images.add(signature)
+    return result
+
+
+def mark_received_image_processed(path):
+    try:
+        signature = f"{path.name}:{path.stat().st_mtime_ns}:{path.stat().st_size}"
+        processed_received_images.add(signature)
+    except OSError:
+        pass
 
 
 @app.route("/")
@@ -980,6 +1026,11 @@ def index():
 @app.route("/assets/<path:filename>")
 def assets(filename):
     return send_from_directory(str(BASE_DIR / "assets"), filename)
+
+
+@app.route("/received_images/<path:filename>")
+def received_images(filename):
+    return send_from_directory(str(RECEIVED_IMAGES_DIR), filename)
 
 
 @app.route("/api/health")
@@ -1027,6 +1078,20 @@ def raspberry_sensors():
 @app.route("/api/history")
 def history():
     return jsonify({"history": list(sensor_history)})
+
+
+@app.route("/api/latest_analysis")
+def latest_analysis_api():
+    return jsonify({"analysis": latest_analysis})
+
+
+@app.route("/api/scan_received_images")
+def scan_received_images_api():
+    try:
+        analysis = scan_received_images_once(request.args.get("zone_id", "A"))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+    return jsonify({"analysis": analysis or latest_analysis, "new_image": analysis is not None})
 
 
 @app.route("/api/thresholds")
@@ -1088,17 +1153,66 @@ def analyze():
     return jsonify(analyze_image_object(img, zone_id, lat, lng))
 
 
+@app.route("/upload", methods=["POST"])
+def upload_from_raspberry_folder_flow():
+    if "image" not in request.files:
+        return jsonify({"error": "Pas d'image"}), 400
+    RECEIVED_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    file = request.files["image"]
+    original_name = secure_filename(file.filename or "capture.jpg")
+    stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    saved_name = f"{stamp}_{original_name}"
+    save_path = RECEIVED_IMAGES_DIR / saved_name
+    raw = file.read()
+    save_path.write_bytes(raw)
+    mark_received_image_processed(save_path)
+    try:
+        img = Image.open(io.BytesIO(raw)).convert("RGB")
+        result = analyze_image_object(
+            img,
+            zone_id=request.form.get("zone_id", "A"),
+            source="raspberry_usb_upload",
+            image_url=f"/received_images/{saved_name}",
+            filename=saved_name,
+        )
+    except Exception as exc:
+        return jsonify({"error": str(exc), "saved_path": str(save_path)}), 500
+    return jsonify(
+        {
+            "message": "Image recue, sauvegardee et analysee avec succes",
+            "saved_path": str(save_path),
+            "analysis": result,
+        }
+    )
+
+
 @app.route("/api/raspberry/photo", methods=["POST"])
 def raspberry_photo():
     if "image" not in request.files:
         return jsonify({"error": "Aucune image recue depuis la Raspberry Pi."}), 400
     file = request.files["image"]
     zone_id = request.form.get("zone_id", "A")
+    RECEIVED_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    original_name = secure_filename(file.filename or "raspberry_photo.jpg")
+    stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    saved_name = f"{stamp}_{original_name}"
+    save_path = RECEIVED_IMAGES_DIR / saved_name
+    raw = file.read()
+    save_path.write_bytes(raw)
+    mark_received_image_processed(save_path)
     try:
-        img = Image.open(io.BytesIO(file.read())).convert("RGB")
-        return jsonify(analyze_image_object(img, zone_id))
+        img = Image.open(io.BytesIO(raw)).convert("RGB")
+        return jsonify(
+            analyze_image_object(
+                img,
+                zone_id=zone_id,
+                source="raspberry_api_photo",
+                image_url=f"/received_images/{saved_name}",
+                filename=saved_name,
+            )
+        )
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": str(exc), "saved_path": str(save_path)}), 500
 
 
 @app.route("/api/disease_map")

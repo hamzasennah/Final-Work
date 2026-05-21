@@ -74,6 +74,7 @@ La Raspberry Pi peut envoyer les capteurs et photos directement à l’applicati
 
 - `POST /api/raspberry/sensors`
 - `POST /api/raspberry/photo`
+- `POST /upload` pour le test camera USB simple montre dans RealVNC/Thonny.
 
 Code embarqué:
 
@@ -87,6 +88,28 @@ python agroshield_rpi_client.py --config config.json
 ```
 
 Le client lit les capteurs, applique une décision locale avec hystérésis si le serveur est indisponible, actionne les servos et envoie les photos caméra pour affichage immédiat dans l’interface.
+
+### Flux camera USB sans upload manuel
+
+Le serveur AgroShield analyse maintenant automatiquement les images recues par Raspberry:
+
+1. Directement via `POST /upload`.
+2. Ou par surveillance du dossier Windows `C:\Users\pc\Desktop\reception des images`.
+
+Il faut lancer le serveur principal du projet:
+
+```bash
+python server.py
+```
+
+Puis, sur Raspberry, envoyer une capture USB:
+
+```bash
+cd raspberry
+python3 usb_camera_upload.py --server http://ADRESSE_IP_DU_PC:5000 --zone A
+```
+
+L'image est sauvegardee dans `C:\Users\pc\Desktop\reception des images`, analysee par EfficientNet-B0/ResNet-50 si les modeles sont charges, puis affichee automatiquement dans l'onglet Diagnostic de l'application. Il n'est donc plus necessaire de choisir le fichier manuellement.
 
 Quand une image détecte une maladie, le serveur renvoie aussi une commande exploitable par la Raspberry:
 
