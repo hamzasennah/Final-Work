@@ -40,6 +40,7 @@ Pour un accès depuis un autre appareil du même réseau, utiliser `http://<adre
 ## Fonctionnalités principales
 
 - Dashboard capteurs avec température, humidité, précipitation, luminosité, état global et mini tendances.
+- Tableau de décision agronomique: stress hydrique zonal, GDD, risque maladie à 7 jours, NDVI proxy RGB/GCC, centre d'alertes et rapport téléchargeable.
 - Animation mécanique fidèle au prototype: repos à 0°, plaques horizontales à 90° en forte chaleur, plaques inclinées en pluie pour guider l’eau vers le canal central puis le réservoir.
 - Diagnostic IA par image avec aperçu, classe prédite, confiance, zones A/B/C à traiter et historique avec date + heure.
 - Contrôle hors domaine: si la caméra capture un PC, un document, un objet ou une image qui ne ressemble pas à une feuille du dataset, l'application renvoie `Hors_dataset_non_vegetal` et ne déclenche aucune intervention maladie.
@@ -47,6 +48,15 @@ Pour un accès depuis un autre appareil du même réseau, utiliser `http://<adre
 - Seuils par culture: tomate, poivron et pomme de terre avec hystérésis pour éviter les oscillations des servomoteurs.
 - Boucle intégrée maladie-météo: la pluie, l’humidité et la chaleur ne sont pas traitées séparément du diagnostic, elles modifient le risque de propagation et peuvent déclencher une action mécanique.
 - Endpoints Raspberry Pi pour les capteurs et la caméra.
+
+## Modules agronomiques avancés
+
+- `SWI opérationnel`: score 0-100 par zone A/B/C calculé avec humidité du sol, température, humidité air, pluie et luminosité. Il sert à recommander l'irrigation mais reste distinct d'une mesure scientifique complète de CWSI.
+- `GDD`: accumulation de degrés-jours depuis une date de semis paramétrée par culture, avec stade phénologique estimé.
+- `Risque maladie 7 jours`: projection locale à court terme combinant humidité, pluie, chaleur et dernière maladie active.
+- `NDVI proxy caméra`: estimation RGB basée sur Green Chromatic Coordinate, utile comme indicateur de tendance quand la caméra n'est pas multispectrale.
+- `Assistant agronomique`: réponses locales sur les plaques, la pluie, la chaleur, l'irrigation et le risque maladie.
+- `Rapport`: export JSON structuré prêt à convertir en PDF via impression ou intégration future.
 
 ## Modèles IA
 
@@ -188,6 +198,10 @@ Références agronomiques consultées pour relier maladies et météo:
 - University of Minnesota Extension, tomato leaf mold: https://extension.umn.edu/disease-management/tomato-leaf-mold
 - NC State Extension, Tomato yellow leaf curl virus: https://content.ces.ncsu.edu/tomato-yellow-leaf-curl-virus
 - University of Maryland Extension, tomato heat stress and high-temperature problems: https://extension.umd.edu/resource/high-temperature-and-heat-injury-vegetables/
+- FAO Irrigation and Drainage Paper 56, Penman-Monteith / ET0 reference: https://www.fao.org/4/X0490E/x0490e08.htm
+- Oregon State University Extension, vegetable degree-day models: https://extension.oregonstate.edu/catalog/em-9305-vegetable-degree-day-models-introduction-farmers-gardeners
+- USDA Climate Hubs, AgroClimate Growing Degree Days Monitoring: https://www.climatehubs.usda.gov/hubs/southeast/tools/agroclimate-growing-degree-days-monitoring
+- Camera vegetation indices / Green Chromatic Coordinate context: https://www.sciencedirect.com/science/article/pii/S0168192317303763
 - University of Minnesota Extension, growing tomatoes, peppers and potatoes: https://extension.umn.edu/vegetables
 
 ## GitHub

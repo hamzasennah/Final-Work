@@ -214,6 +214,33 @@ CROP_THRESHOLDS = {
     },
 }
 
+CROP_DECISION_MODELS = {
+    "tomato": {
+        "base_temp": 10.0,
+        "sowing_date": "2026-03-15",
+        "gdd_stages": [(350, "Reprise vegetative"), (650, "Floraison"), (1050, "Nouaison"), (1500, "Recolte proche")],
+        "soil_optimum": 68,
+    },
+    "pepper": {
+        "base_temp": 12.0,
+        "sowing_date": "2026-03-20",
+        "gdd_stages": [(320, "Reprise vegetative"), (700, "Floraison"), (1100, "Fructification"), (1600, "Recolte proche")],
+        "soil_optimum": 65,
+    },
+    "potato": {
+        "base_temp": 7.0,
+        "sowing_date": "2026-03-10",
+        "gdd_stages": [(280, "Emergence"), (650, "Tubérisation"), (1000, "Grossissement"), (1350, "Maturite")],
+        "soil_optimum": 72,
+    },
+    "default": {
+        "base_temp": 10.0,
+        "sowing_date": "2026-03-15",
+        "gdd_stages": [(320, "Croissance"), (650, "Floraison"), (1050, "Production"), (1450, "Recolte proche")],
+        "soil_optimum": 68,
+    },
+}
+
 system_state = {
     "current_crop": "default",
     "mode": "repos",
@@ -691,6 +718,136 @@ def mechanism_description(mode):
     }[mode]
 
 
+def risk_level(score):
+    if score >= 75:
+        return "critique"
+    if score >= 55:
+        return "attention"
+    return "normal"
+
+
+def zone_adjustment(zone):
+    return {"A": -4, "B": 0, "C": 5}.get(zone, 0)
+
+
+def compute_zone_swi(data, crop="default"):
+    model = CROP_DECISION_MODELS.get(crop, CROP_DECISION_MODELS["default"])
+    soil = float(data.get("soil_moisture", model["soil_optimum"]))
+    temp = float(data["temperature"])
+    humidity = float(data["humidity"])
+    rain = float(data["precipitation"])
+    light = float(data["luminosity"])
+    opt = model["soil_optimum"]
+    thermal = max(0, temp - CROP_THRESHOLDS.get(crop, CROP_THRESHOLDS["default"])["temp_off"]) * 2.1
+    dry_air = max(0, 58 - humidity) * 0.55
+    light_load = max(0, light - 650) * 0.035
+    rain_relief = min(18, rain * 0.7)
+    base = max(0, opt - soil) * 1.35 + thermal + dry_air + light_load - rain_relief
+    zones = {}
+    for zone in ("A", "B", "C"):
+        score = round(max(0, min(100, base + zone_adjustment(zone))))
+        zones[zone] = {
+            "score": score,
+            "level": risk_level(score),
+            "recommendation": "Irrigation automatique recommandee" if score >= 65 else ("Surveillance irrigation" if score >= 45 else "Hydratation correcte"),
+        }
+    return zones
+
+
+def compute_gdd(data, crop="default"):
+    model = CROP_DECISION_MODELS.get(crop, CROP_DECISION_MODELS["default"])
+    try:
+        sowing = datetime.date.fromisoformat(model["sowing_date"])
+    except ValueError:
+        sowing = datetime.date(datetime.datetime.now().year, 3, 15)
+    today = datetime.datetime.now().date()
+    days = max(1, (today - sowing).days)
+    history = list(sensor_history)[-24:]
+    mean_temp = sum(item["temperature"] for item in history) / len(history) if history else float(data["temperature"])
+    daily_gdd = max(0, mean_temp - model["base_temp"])
+    cumulative = round(daily_gdd * days, 1)
+    stages = model["gdd_stages"]
+    stage = stages[0][1]
+    next_stage = stages[-1]
+    for threshold, label in stages:
+        if cumulative >= threshold:
+            stage = label
+        else:
+            next_stage = (threshold, label)
+            break
+    remaining = max(0, next_stage[0] - cumulative)
+    days_to_next = round(remaining / max(0.1, daily_gdd))
+    return {
+        "cumulative": cumulative,
+        "daily": round(daily_gdd, 1),
+        "stage": stage,
+        "next_stage": next_stage[1],
+        "days_to_next": days_to_next,
+        "base_temp": model["base_temp"],
+        "sowing_date": model["sowing_date"],
+    }
+
+
+def compute_ndvi_proxy(data):
+    green = max(0, min(255, 80 + data.get("soil_moisture", 62) * 1.5 - data["temperature"] * 0.7))
+    red = max(0, min(255, 70 + data["temperature"] * 1.4 + data["precipitation"] * 0.25))
+    blue = max(0, min(255, 45 + data["humidity"] * 0.35))
+    gcc = green / max(1, red + green + blue)
+    ndvi_proxy = round(max(0, min(0.95, (gcc - 0.28) / 0.34)), 2)
+    trend = "stable"
+    if data["temperature"] >= CROP_THRESHOLDS.get(data.get("crop", "default"), CROP_THRESHOLDS["default"])["temp_on"] or data["humidity"] >= 88:
+        trend = "baisse probable"
+    elif data.get("soil_moisture", 65) >= 65 and data["temperature"] < 29:
+        trend = "hausse legere"
+    return {"value": ndvi_proxy, "gcc": round(gcc, 3), "trend": trend, "method": "proxy RGB Green Chromatic Coordinate"}
+
+
+def compute_risk_forecast(data, crop="default", disease_context=None):
+    th = CROP_THRESHOLDS.get(crop, CROP_THRESHOLDS["default"])
+    base = 24
+    if data["humidity"] >= th["humidity_on"]:
+        base += 18
+    if data["precipitation"] >= th["rain_on"]:
+        base += 22
+    if data["temperature"] >= th["temp_on"]:
+        base += 14
+    if disease_context:
+        base += round(disease_context.get("combined_risk", 0) * 28)
+    days = []
+    for idx in range(1, 8):
+        drift = (idx - 1) * 3
+        rain_wave = 7 if idx in {2, 3, 4} and data["precipitation"] > th["rain_off"] else 0
+        score = max(5, min(98, base + drift + rain_wave - idx))
+        days.append({"day": idx, "risk": score, "level": risk_level(score)})
+    peak = max(days, key=lambda item: item["risk"])
+    action = "Traitement preventif conseille" if peak["risk"] >= 75 else ("Surveillance rapprochee" if peak["risk"] >= 55 else "Risque controle")
+    return {"days": days, "peak_day": peak["day"], "peak_risk": peak["risk"], "action": action}
+
+
+def build_alerts(data, analytics, disease_context=None):
+    alerts = []
+    for zone, info in analytics["swi"]["zones"].items():
+        if info["score"] >= 75:
+            alerts.append({"level": "critique", "zone": zone, "message": f"Stress hydrique zone {zone}: {info['score']}/100", "action": "Irrigation automatique recommandee"})
+        elif info["score"] >= 55:
+            alerts.append({"level": "attention", "zone": zone, "message": f"Stress hydrique modere zone {zone}", "action": "Verifier humidite du sol"})
+    if analytics["forecast"]["peak_risk"] >= 75:
+        alerts.append({"level": "critique", "zone": disease_context.get("zone", "A") if disease_context else "A/B/C", "message": f"Risque maladie J+{analytics['forecast']['peak_day']}: {analytics['forecast']['peak_risk']}%", "action": analytics["forecast"]["action"]})
+    if data["mechanism"]["mode"] != "repos":
+        alerts.append({"level": "info", "zone": "systeme", "message": f"Plaques en mode {data['mechanism']['mode']}", "action": data["actuator_command"]["reason"]})
+    return alerts[:6]
+
+
+def compute_decision_analytics(data, crop="default", disease_context=None):
+    analytics = {
+        "swi": {"zones": compute_zone_swi(data, crop), "method": "Indice operationnel derive humidite sol, temperature, humidite air, pluie et luminosite"},
+        "gdd": compute_gdd(data, crop),
+        "ndvi": compute_ndvi_proxy(data),
+    }
+    analytics["forecast"] = compute_risk_forecast(data, crop, disease_context)
+    return analytics
+
+
 def decorate_sensor_payload(data, crop="default"):
     crop = crop if crop in CROP_THRESHOLDS else "default"
     data["crop"] = crop
@@ -749,6 +906,8 @@ def decorate_sensor_payload(data, crop="default"):
         "reason": command_reason,
         "apply_on_raspberry": True,
     }
+    data["analytics"] = compute_decision_analytics(data, crop, disease_context)
+    data["alerts_center"] = build_alerts(data, data["analytics"], disease_context)
     sensor_history.append(data.copy())
     return data
 
@@ -785,6 +944,8 @@ def get_sensors():
         "humidity": round(humidity, 1),
         "precipitation": round(precipitation, 1),
         "luminosity": round(luminosity, 1),
+        "soil_moisture": round(random.uniform(48, 78), 1),
+        "reservoir_level": round(random.uniform(42, 92), 1),
         "mode": "simulation",
         "last_update": time.time(),
         "crop": system_state["current_crop"],
@@ -1223,6 +1384,27 @@ def raspberry_sensors():
 @app.route("/api/history")
 def history():
     return jsonify({"history": list(sensor_history)})
+
+
+@app.route("/api/report")
+def report():
+    latest = sensor_history[-1] if sensor_history else get_sensors()
+    detections = list(detections_db)[-10:]
+    return jsonify(
+        {
+            "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+            "project": "AgroShield - Centrale Casablanca - Groupe PLBD 3",
+            "summary": {
+                "crop": latest.get("crop", system_state["current_crop"]),
+                "mechanism": latest.get("mechanism", {}),
+                "alerts": latest.get("alerts_center", []),
+                "analytics": latest.get("analytics", {}),
+                "last_detection": latest_analysis,
+            },
+            "detections": detections,
+            "recommendation": "Exporter en PDF via impression navigateur apres validation terrain.",
+        }
+    )
 
 
 @app.route("/api/latest_analysis")
