@@ -823,7 +823,41 @@
     }
     body.dark .farmer-action { background:#17231b; }
     .farmer-action b { display:block; font-size: 18px; margin-bottom: 8px; }
-    .alert-list { display:grid; gap: 10px; }
+    .alert-list { display:grid; gap: 12px; }
+    .alert-columns {
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .alert-column {
+      min-height: 184px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.72);
+      padding: 12px;
+    }
+    body.dark .alert-column { background:#17231b; }
+    .alert-column h4 {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin: 0 0 10px;
+      font-size: 14px;
+    }
+    .alert-count {
+      display:inline-grid;
+      place-items:center;
+      min-width:26px;
+      height:26px;
+      padding:0 8px;
+      border-radius:999px;
+      background:rgba(47,125,69,.12);
+      color:var(--green-deep);
+      font-weight:900;
+    }
+    .alert-column.attention .alert-count { background:rgba(249,168,37,.17); color:#8a5a00; }
+    .alert-column.critique .alert-count { background:rgba(211,47,47,.14); color:var(--red); }
     .alert-item {
       border: 1px solid var(--line);
       border-left: 5px solid var(--green);
@@ -833,6 +867,12 @@
     }
     .alert-item.attention { border-left-color: var(--amber); }
     .alert-item.critique { border-left-color: var(--red); }
+    .alert-item small {
+      display:block;
+      margin-top:6px;
+      color:var(--muted);
+      line-height:1.4;
+    }
     body.dark .alert-item { background:#17231b; }
     .history-chart {
       width: 100%;
@@ -853,8 +893,28 @@
       border-radius: 8px;
       background: #f7fbf7;
       margin-bottom: 14px;
+      overflow:hidden;
     }
     .zone-map svg { width: 100%; height: 150px; display: block; }
+    #interactiveZoneMap { min-height: 310px; background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(230,241,232,.86)); }
+    #interactiveZoneMap svg { height: 310px; }
+    .zone-status-text { font-size: 13px; font-weight: 900; fill: rgba(255,255,255,.92); }
+    .zone-surface { filter: drop-shadow(0 12px 14px rgba(20,45,31,.16)); transition: filter .18s ease, opacity .18s ease; }
+    [data-zone-detail]:hover .zone-surface { filter: drop-shadow(0 16px 18px rgba(20,45,31,.26)); opacity: .92; }
+    .report-choice-grid {
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:12px;
+      margin-top:14px;
+    }
+    .report-choice {
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:14px;
+      background:rgba(255,255,255,.75);
+    }
+    body.dark .report-choice { background:#17231b; }
+    .report-choice b { display:block; margin-bottom:6px; }
     .footer {
       display: flex;
       justify-content: space-between;
@@ -868,6 +928,7 @@
     @media (max-width: 980px) {
       .login-card, .hero, .grid { grid-template-columns: 1fr; }
       .decision-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .alert-columns, .report-choice-grid { grid-template-columns: 1fr; }
       .farmer-action-grid { grid-template-columns: 1fr; }
       .login-visual { min-height: 420px; }
       .sensor-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1031,41 +1092,63 @@
           </div>
           <div class="panel-body">
             <div class="zone-map" id="interactiveZoneMap" aria-label="Carte interactive des zones">
-              <svg viewBox="0 0 760 250">
+              <svg viewBox="0 0 900 330">
                 <defs>
-                  <linearGradient id="mapFrame" x1="0" x2="1">
-                    <stop offset="0" stop-color="#30413a"/>
-                    <stop offset="1" stop-color="#66726a"/>
+                  <linearGradient id="mapSky" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0" stop-color="#eef7f1"/>
+                    <stop offset="1" stop-color="#dceee1"/>
+                  </linearGradient>
+                  <linearGradient id="mapRail" x1="0" x2="1">
+                    <stop offset="0" stop-color="#26332f"/>
+                    <stop offset="1" stop-color="#65746b"/>
+                  </linearGradient>
+                  <linearGradient id="mapWater" x1="0" x2="1">
+                    <stop offset="0" stop-color="#2f80ed"/>
+                    <stop offset="1" stop-color="#78c9ff"/>
                   </linearGradient>
                 </defs>
-                <rect x="24" y="28" width="712" height="184" rx="10" fill="#edf4ef" stroke="url(#mapFrame)" stroke-width="8"/>
-                <path d="M50 50H710M50 190H710M50 50V190M710 50V190M50 50l70-34H640l70 34" fill="none" stroke="#4f5f57" stroke-width="5"/>
-                <path d="M380 50v140" stroke="#56635c" stroke-width="16" stroke-linecap="round"/>
-                <path d="M380 68c-24 18-24 38 0 56c24-18 24-38 0-56z" fill="#c9d5d0" stroke="#56635c" stroke-width="4"/>
+                <rect width="900" height="330" fill="url(#mapSky)"/>
+                <path d="M92 86L178 42H722L808 86V244H92Z" fill="rgba(255,255,255,.56)" stroke="url(#mapRail)" stroke-width="8" stroke-linejoin="round"/>
+                <path d="M126 112H774M126 216H774M126 112V216M774 112V216M178 42V112M722 42V112" fill="none" stroke="#42524a" stroke-width="5" opacity=".9"/>
+                <path d="M450 80v172" stroke="#485850" stroke-width="14" stroke-linecap="round"/>
+                <path d="M450 118c-34 28-34 68 0 96c34-28 34-68 0-96z" fill="#cfdad4" stroke="#42524a" stroke-width="5"/>
+                <g transform="translate(134 98)">
+                  <circle cx="4" cy="0" r="18" fill="#cfd4d4" stroke="#3d4844" stroke-width="7"/>
+                  <circle cx="632" cy="0" r="18" fill="#cfd4d4" stroke="#3d4844" stroke-width="7"/>
+                  <rect x="-4" y="-11" width="640" height="22" rx="9" fill="#2b3531"/>
+                </g>
                 <g data-zone-detail="A" tabindex="0" aria-label="Zone A">
-                  <rect id="zoneMapA" x="58" y="62" width="204" height="116" rx="8" fill="#5ba95b"/>
-                  <path d="M78 82h164M78 112h164M78 142h164" stroke="#e8f4e8" stroke-width="2" opacity=".65"/>
-                  <text x="160" y="130" text-anchor="middle" fill="#fff" font-size="42" font-weight="900">A</text>
+                  <polygon id="zoneMapA" class="zone-surface" points="126,126 342,126 318,214 126,214" fill="#5ba95b"/>
+                  <path d="M150 145H319M144 171H312M138 196H305" stroke="#e8f4e8" stroke-width="3" opacity=".7"/>
+                  <text x="224" y="182" text-anchor="middle" fill="#fff" font-size="56" font-weight="900">A</text>
+                  <text class="zone-status-text" x="224" y="204" text-anchor="middle">Zone gauche</text>
                 </g>
                 <g data-zone-detail="B" tabindex="0" aria-label="Zone B">
-                  <rect id="zoneMapB" x="278" y="62" width="204" height="116" rx="8" fill="#7dbb6b"/>
-                  <path d="M298 82h164M298 112h164M298 142h164" stroke="#eef8e9" stroke-width="2" opacity=".65"/>
-                  <text x="380" y="130" text-anchor="middle" fill="#fff" font-size="42" font-weight="900">B</text>
+                  <polygon id="zoneMapB" class="zone-surface" points="356,126 544,126 568,214 332,214" fill="#7dbb6b"/>
+                  <path d="M380 145H520M372 171H528M364 196H536" stroke="#eef8e9" stroke-width="3" opacity=".7"/>
+                  <text x="450" y="182" text-anchor="middle" fill="#fff" font-size="56" font-weight="900">B</text>
+                  <text class="zone-status-text" x="450" y="204" text-anchor="middle">Canal central</text>
                 </g>
                 <g data-zone-detail="C" tabindex="0" aria-label="Zone C">
-                  <rect id="zoneMapC" x="498" y="62" width="204" height="116" rx="8" fill="#9ccc7a"/>
-                  <path d="M518 82h164M518 112h164M518 142h164" stroke="#f5fbe9" stroke-width="2" opacity=".65"/>
-                  <text x="600" y="130" text-anchor="middle" fill="#fff" font-size="42" font-weight="900">C</text>
+                  <polygon id="zoneMapC" class="zone-surface" points="558,126 774,126 774,214 582,214" fill="#9ccc7a"/>
+                  <path d="M581 145H750M588 171H756M595 196H762" stroke="#f5fbe9" stroke-width="3" opacity=".7"/>
+                  <text x="676" y="182" text-anchor="middle" fill="#fff" font-size="56" font-weight="900">C</text>
+                  <text class="zone-status-text" x="676" y="204" text-anchor="middle">Zone droite</text>
                 </g>
-                <path d="M380 190v34h220" fill="none" stroke="#2f80ed" stroke-width="8" stroke-linecap="round"/>
-                <rect x="612" y="200" width="52" height="34" rx="6" fill="#75b8e9" stroke="#51626a" stroke-width="4"/>
-                <text x="638" y="246" text-anchor="middle" fill="#31443a" font-size="13" font-weight="800">Réservoir</text>
-                <g transform="translate(336 206)">
-                  <rect width="46" height="26" rx="5" fill="#f7faf8" stroke="#2f3936" stroke-width="3"/>
-                  <circle cx="34" cy="13" r="8" fill="#111"/>
-                  <text x="-8" y="44" fill="#31443a" font-size="13" font-weight="800">Caméra</text>
+                <path d="M450 216v42q0 24 30 24h194" fill="none" stroke="url(#mapWater)" stroke-width="11" stroke-linecap="round"/>
+                <path d="M468 239c22 0 22 0 44 0M538 282h82" stroke="#b7e8ff" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+                <g transform="translate(370 256)">
+                  <rect width="62" height="38" rx="7" fill="#f7faf8" stroke="#2f3936" stroke-width="4"/>
+                  <circle cx="45" cy="19" r="11" fill="#111" stroke="#6d7d83" stroke-width="5"/>
+                  <path d="M12 38l-20 30" stroke="#2f3936" stroke-width="4"/>
+                  <text x="4" y="70" fill="#31443a" font-size="16" font-weight="900">Camera</text>
                 </g>
-                <text x="380" y="24" text-anchor="middle" fill="#31443a" font-size="15" font-weight="900">Plan serre/champ - cliquez directement sur une zone</text>
+                <g transform="translate(682 244)">
+                  <rect width="74" height="60" rx="10" fill="#84c6f1" stroke="#526870" stroke-width="5"/>
+                  <rect x="8" y="34" width="58" height="18" fill="#3e9dda" opacity=".72"/>
+                  <text x="37" y="84" text-anchor="middle" fill="#31443a" font-size="16" font-weight="900">Reservoir</text>
+                </g>
+                <text x="450" y="28" text-anchor="middle" fill="#31443a" font-size="17" font-weight="900">Carte de santé zonale - cliquez sur une zone du prototype</text>
               </svg>
             </div>
             <div class="result" id="zoneDetail">
@@ -1311,13 +1394,24 @@
             </div>
             <div class="report-actions">
               <button class="ghost" id="refreshReport" type="button">Actualiser</button>
-              <button class="primary" id="downloadReport" type="button">Télécharger</button>
+              <button class="ghost" id="downloadTechnicianReport" type="button">PDF technicien</button>
+              <button class="primary" id="downloadFarmerReport" type="button">PDF fermier</button>
             </div>
           </div>
           <div class="panel-body">
             <div class="result" id="reportBox">
               <h4>Rapport prêt</h4>
               <p>Actualisez pour générer la synthèse à partir des dernières données.</p>
+            </div>
+            <div class="report-choice-grid">
+              <div class="report-choice">
+                <b>Rapport fermier</b>
+                <p>Langage simple, maladie détectée, heure de l'image, zone concernée, action directe et alertes utiles.</p>
+              </div>
+              <div class="report-choice">
+                <b>Rapport technicien</b>
+                <p>Capteurs, seuils, mécanisme, SWI, GDD, NDVI proxy, notification SMTP/Twilio et historique IA.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1397,6 +1491,7 @@
     let lastSensorPayload = null;
     let lastRenderedAnalysisTimestamp = "";
     let latestReportData = null;
+    let uxMode = "technician";
     const series = { temperature: [], humidity: [], precipitation: [], luminosity: [] };
     const chartColors = { temperature: "#d32f2f", humidity: "#2e7d32", precipitation: "#2f80ed", luminosity: "#f9a825" };
 
@@ -1429,6 +1524,37 @@
 
     function alertClass(level) {
       return level === "critique" ? "critique" : (level === "attention" ? "attention" : "normal");
+    }
+
+    function renderAlertColumns(alerts) {
+      const safeAlerts = alerts?.length ? alerts : [{
+        level: "info",
+        trigger: "system_health",
+        zone: "systeme",
+        message: "Aucune alerte critique",
+        action: "Le système poursuit la surveillance.",
+        delivery: { email: { status: "simulation" }, sms: { status: "simulation" } }
+      }];
+      const levels = [
+        { key: "info", title: "Info", label: "vert" },
+        { key: "attention", title: "Attention", label: "orange" },
+        { key: "critique", title: "Critique", label: "rouge" }
+      ];
+      return `<div class="alert-columns">${levels.map((level) => {
+        const items = safeAlerts.filter((item) => (item.level || "info") === level.key);
+        const rendered = items.length ? items.map((item) => `
+          <div class="alert-item ${alertClass(item.level)}">
+            <b>${item.zone || "systeme"} - ${item.message || "Surveillance"}</b>
+            <p>${item.action || "Aucune action immédiate."}</p>
+            <small>Capteur déclencheur: ${item.trigger || "--"}</small>
+            <small>Email: ${item.delivery?.email?.status || "simulation"} | SMS: ${item.delivery?.sms?.status || "simulation"}</small>
+          </div>
+        `).join("") : `<div class="alert-item"><b>Aucune alerte</b><p>Niveau ${level.label} non déclenché.</p><small>Canaux email/SMS prêts pour configuration.</small></div>`;
+        return `<section class="alert-column ${level.key}">
+          <h4>${level.title}<span class="alert-count">${items.length}</span></h4>
+          ${rendered}
+        </section>`;
+      }).join("")}</div>`;
     }
 
     function updateDecisionCards(data) {
@@ -1466,13 +1592,7 @@
       document.getElementById("ndviCode").textContent = ndvi.gcc !== undefined ? `GCC: ${ndvi.gcc}` : "GCC: --";
 
       const alerts = data.alerts_center || [];
-      document.getElementById("alertList").innerHTML = alerts.length ? alerts.map((item) => `
-        <div class="alert-item ${alertClass(item.level)}">
-          <b>${item.level.toUpperCase()} - ${item.zone}</b>
-          <p>${item.message}</p>
-          <p>${item.action}</p>
-        </div>
-      `).join("") : `<div class="alert-item"><b>INFO</b><p>Aucune alerte critique.</p><p>Le système poursuit la surveillance.</p></div>`;
+      document.getElementById("alertList").innerHTML = renderAlertColumns(alerts);
       updateFarmerSummary(data, worst);
     }
 
@@ -1848,29 +1968,49 @@
       const summary = data.summary || {};
       const analytics = summary.analytics || {};
       const mechanism = summary.mechanism || {};
+      const sensors = summary.sensors || {};
+      const last = summary.last_detection || {};
+      const farmer = uxMode === "farmer";
       latestReportData = data;
+      if (farmer) {
+        document.getElementById("reportBox").innerHTML = `
+          <h4>Rapport fermier - ${data.project}</h4>
+          <p><strong>Généré le:</strong> ${new Date(data.generated_at).toLocaleString("fr-FR")}</p>
+          <p><strong>Action plaques:</strong> ${mechanism.mode || "--"} - ${mechanism.description || "Surveillance"}</p>
+          <p><strong>Culture:</strong> ${summary.crop || "--"} | <strong>Température:</strong> ${sensors.temperature ?? "--"}°C | <strong>Pluie:</strong> ${sensors.precipitation ?? "--"} mm/h</p>
+          <p><strong>Dernière maladie:</strong> ${last.disease || "Aucune maladie validée"} ${last.zone?.timestamp ? `- image prise/analysee le ${new Date(last.zone.timestamp).toLocaleString("fr-FR")}` : ""}</p>
+          <p><strong>Conseil simple:</strong> ${(summary.alerts || [])[0]?.action || "Continuer la surveillance et vérifier les feuilles."}</p>
+          <div style="margin-top:12px">${renderAlertColumns(summary.alerts || [])}</div>
+        `;
+        return;
+      }
       document.getElementById("reportBox").innerHTML = `
-        <h4>${data.project}</h4>
+        <h4>Rapport technicien - ${data.project}</h4>
         <p><strong>Généré le:</strong> ${new Date(data.generated_at).toLocaleString("fr-FR")}</p>
-        <p><strong>Culture:</strong> ${summary.crop || "--"} | <strong>Mécanisme:</strong> ${mechanism.mode || "--"} (${mechanism.plate_angle || 0}°)</p>
-        <p><strong>GDD:</strong> ${analytics.gdd?.cumulative || "--"} °C·j - ${analytics.gdd?.stage || "--"}</p>
+        <p><strong>Culture:</strong> ${summary.crop || "--"} | <strong>Mécanisme:</strong> ${mechanism.mode || "--"} (${mechanism.plate_angle || 0}° plaques, servo ${mechanism.servo_angle || 0}°)</p>
+        <p><strong>Capteurs:</strong> T ${sensors.temperature ?? "--"}°C, HR ${sensors.humidity ?? "--"}%, pluie ${sensors.precipitation ?? "--"} mm/h, lumière ${sensors.luminosity ?? "--"} lx, sol ${sensors.soil_moisture ?? "--"}%, réservoir ${sensors.reservoir_level ?? "--"}%</p>
+        <p><strong>GDD:</strong> ${analytics.gdd?.cumulative || "--"} °C·j - ${analytics.gdd?.stage || "--"} | <strong>NDVI proxy:</strong> ${analytics.ndvi?.value ?? "--"} - ${analytics.ndvi?.trend || "--"}</p>
         <p><strong>Risque maladie 7j:</strong> ${analytics.forecast?.peak_risk || "--"}% - ${analytics.forecast?.action || "--"}</p>
-        <p><strong>NDVI proxy:</strong> ${analytics.ndvi?.value ?? "--"} - ${analytics.ndvi?.trend || "--"}</p>
-        <p><strong>Alertes:</strong> ${(summary.alerts || []).map((a) => `${a.level} ${a.zone}: ${a.message}`).join(" | ") || "Aucune alerte critique"}</p>
+        <p><strong>Dernière IA:</strong> ${last.predicted_class || "--"} | confiance ${Math.round((last.confidence || 0) * 100)}% | zone ${last.zone?.zone_id || last.zone_id || "--"}</p>
+        <div style="margin-top:12px">${renderAlertColumns(summary.alerts || [])}</div>
       `;
     }
 
     async function refreshReport() {
       try {
-        const res = await fetch("/api/report");
+        const res = await fetch(`/api/report?audience=${encodeURIComponent(uxMode)}`);
         renderReport(await res.json());
       } catch {
         document.getElementById("reportBox").innerHTML = `<h4>Rapport indisponible</h4><p>Impossible de récupérer les données serveur.</p>`;
       }
     }
 
-    function downloadReport() {
-      window.location.href = "/api/report.pdf";
+    function downloadFarmerReport() {
+      window.location.href = "/api/report.pdf?audience=farmer";
+    }
+
+    function downloadTechnicianReport() {
+      window.location.href = "/api/report.pdf?audience=technician";
     }
 
     function answerAssistant() {
@@ -1898,19 +2038,22 @@
     });
 
     document.getElementById("refreshReport").addEventListener("click", refreshReport);
-    document.getElementById("downloadReport").addEventListener("click", downloadReport);
+    document.getElementById("downloadFarmerReport").addEventListener("click", downloadFarmerReport);
+    document.getElementById("downloadTechnicianReport").addEventListener("click", downloadTechnicianReport);
     document.getElementById("askAssistant").addEventListener("click", answerAssistant);
     document.getElementById("assistantQuestion").addEventListener("keydown", (event) => {
       if (event.key === "Enter") answerAssistant();
     });
     function setUxMode(mode) {
       const farmer = mode === "farmer";
+      uxMode = farmer ? "farmer" : "technician";
       document.body.classList.toggle("farmer-mode", farmer);
       document.getElementById("uxModeToggle").textContent = farmer ? "Mode: Fermier" : "Mode: Technicien";
-      localStorage.setItem("agroshieldUxMode", mode);
+      localStorage.setItem("agroshieldUxMode", uxMode);
       if (farmer && ["history", "thresholds"].includes(document.querySelector(".nav-tab.active")?.dataset.viewTarget)) {
         showView("dashboard");
       }
+      if (document.querySelector(".nav-tab.active")?.dataset.viewTarget === "report") refreshReport();
     }
 
     document.getElementById("uxModeToggle").addEventListener("click", () => {

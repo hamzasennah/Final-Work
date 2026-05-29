@@ -42,7 +42,8 @@ Pour un accès depuis un autre appareil du même réseau, utiliser `http://<adre
 - Dashboard capteurs avec température, humidité, précipitation, luminosité, état global et mini tendances.
 - Tableau de décision agronomique: stress hydrique zonal, GDD, risque maladie à 7 jours, NDVI proxy RGB/GCC, centre d'alertes et rapport téléchargeable.
 - Deux modes d'usage: `Fermier` pour les actions simples et immédiates, `Technicien` pour les seuils, historiques, indicateurs détaillés et diagnostic complet.
-- Rapport agronomique PDF réel via `/api/report.pdf`, avec capteurs, plaques, alertes, SWI, GDD, NDVI proxy, risque 7 jours et dernières détections IA.
+- Rapports agronomiques PDF réels et séparés: `/api/report.pdf?audience=farmer` pour le fermier, `/api/report.pdf?audience=technician` pour le technicien.
+- Système d'alertes multi-niveaux visible dans l'application et dans les rapports: `Info` vert, `Attention` orange, `Critique` rouge, avec capteur déclencheur, zone, action recommandée et statut des canaux email/SMS.
 - Animation mécanique fidèle au prototype: repos à 0°, plaques horizontales à 90° en forte chaleur, plaques inclinées en pluie pour guider l’eau vers le canal central puis le réservoir.
 - Diagnostic IA par image avec aperçu, classe prédite, confiance, zones A/B/C à traiter et historique avec date + heure.
 - Contrôle hors domaine: si la caméra capture un PC, un document, un objet ou une image qui ne ressemble pas à une feuille du dataset, l'application renvoie `Hors_dataset_non_vegetal` et ne déclenche aucune intervention maladie.
@@ -59,7 +60,9 @@ Pour un accès depuis un autre appareil du même réseau, utiliser `http://<adre
 - `NDVI proxy caméra`: estimation RGB basée sur Green Chromatic Coordinate, utile comme indicateur de tendance quand la caméra n'est pas multispectrale.
 - `Assistant agronomique`: réponses locales sur les plaques, la pluie, la chaleur, l'irrigation et le risque maladie.
 - `Carte zonale SVG`: plan visuel de la serre/champ; les zones A/B/C changent de couleur selon le risque et ouvrent le détail capteurs, maladies et actions au clic.
-- `Rapport`: PDF généré côté serveur, directement téléchargeable depuis l'interface.
+- `Rapport fermier`: PDF simple avec logo Centrale Casablanca, action immédiate, état des plaques, maladie détectée, heure de l'image, zone touchée et consigne claire.
+- `Rapport technicien`: PDF détaillé avec logo Centrale Casablanca, capteurs, seuils, mécanisme, SWI, GDD, NDVI proxy, risque 7 jours, diagnostic IA, notifications SMTP/Twilio et historique utile au suivi technique.
+- `Alertes`: trois fenêtres opérationnelles par niveau; chaque alerte porte le capteur déclencheur, la zone, l'action et un payload prêt pour email SMTP ou SMS Twilio. L'envoi externe reste en simulation tant que les identifiants ne sont pas configurés.
 
 ## Modèles IA
 

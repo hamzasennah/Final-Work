@@ -6,7 +6,7 @@
 from flask import Flask, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
 from collections import deque
 import datetime
@@ -34,6 +34,10 @@ CORS(app)
 
 BASE_DIR = Path(__file__).parent
 RECEIVED_IMAGES_DIR = Path(r"C:\Users\pc\Desktop\reception des images")
+ALERT_CHANNELS = {
+    "email": {"enabled": False, "provider": "SMTP", "status": "simulation - config SMTP non renseignee"},
+    "sms": {"enabled": False, "provider": "Twilio", "status": "simulation - identifiants Twilio non renseignes"},
+}
 MODELS_DIR = BASE_DIR / "models"
 EFF_PTH_CANDIDATES = [
     MODELS_DIR / "efficientnet_b0.pth",
@@ -828,13 +832,26 @@ def build_alerts(data, analytics, disease_context=None):
     alerts = []
     for zone, info in analytics["swi"]["zones"].items():
         if info["score"] >= 75:
-            alerts.append({"level": "critique", "zone": zone, "message": f"Stress hydrique zone {zone}: {info['score']}/100", "action": "Irrigation automatique recommandee"})
+            alerts.append({"level": "critique", "trigger": "soil_moisture", "zone": zone, "message": f"Stress hydrique zone {zone}: {info['score']}/100", "action": "Irrigation automatique recommandee"})
         elif info["score"] >= 55:
-            alerts.append({"level": "attention", "zone": zone, "message": f"Stress hydrique modere zone {zone}", "action": "Verifier humidite du sol"})
+            alerts.append({"level": "attention", "trigger": "soil_moisture", "zone": zone, "message": f"Stress hydrique modere zone {zone}", "action": "Verifier humidite du sol"})
     if analytics["forecast"]["peak_risk"] >= 75:
-        alerts.append({"level": "critique", "zone": disease_context.get("zone", "A") if disease_context else "A/B/C", "message": f"Risque maladie J+{analytics['forecast']['peak_day']}: {analytics['forecast']['peak_risk']}%", "action": analytics["forecast"]["action"]})
+        alerts.append({"level": "critique", "trigger": "disease_forecast", "zone": disease_context.get("zone", "A") if disease_context else "A/B/C", "message": f"Risque maladie J+{analytics['forecast']['peak_day']}: {analytics['forecast']['peak_risk']}%", "action": analytics["forecast"]["action"]})
+    elif analytics["forecast"]["peak_risk"] >= 55:
+        alerts.append({"level": "attention", "trigger": "disease_forecast", "zone": disease_context.get("zone", "A") if disease_context else "A/B/C", "message": f"Risque maladie a surveiller: {analytics['forecast']['peak_risk']}%", "action": analytics["forecast"]["action"]})
     if data["mechanism"]["mode"] != "repos":
-        alerts.append({"level": "info", "zone": "systeme", "message": f"Plaques en mode {data['mechanism']['mode']}", "action": data["actuator_command"]["reason"]})
+        alerts.append({"level": "info", "trigger": "actuator_command", "zone": "systeme", "message": f"Plaques en mode {data['mechanism']['mode']}", "action": data["actuator_command"]["reason"]})
+    if not alerts:
+        alerts.append({"level": "info", "trigger": "system_health", "zone": "systeme", "message": "Aucune alerte critique", "action": "Continuer la surveillance"})
+    for alert in alerts:
+        alert["delivery"] = {
+            "email": ALERT_CHANNELS["email"],
+            "sms": ALERT_CHANNELS["sms"],
+            "payload": {
+                "subject": f"AgroShield {alert['level'].upper()} - {alert['zone']}",
+                "body": f"{alert['message']} | Action: {alert['action']} | Capteur: {alert['trigger']}",
+            },
+        }
     return alerts[:6]
 
 
@@ -1386,12 +1403,14 @@ def history():
     return jsonify({"history": list(sensor_history)})
 
 
-def build_report_payload():
+def build_report_payload(audience="technician"):
     latest = sensor_history[-1] if sensor_history else get_sensors()
     detections = list(detections_db)[-10:]
+    audience = "farmer" if audience == "farmer" else "technician"
     return {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
         "project": "AgroShield - Centrale Casablanca - Groupe PLBD 3",
+        "audience": audience,
         "summary": {
             "crop": latest.get("crop", system_state["current_crop"]),
             "mechanism": latest.get("mechanism", {}),
@@ -1409,6 +1428,7 @@ def build_report_payload():
         },
         "detections": detections,
         "recommendation": "Rapport PDF genere automatiquement pour suivi agronomique terrain.",
+        "notification_channels": ALERT_CHANNELS,
     }
 
 
@@ -1512,16 +1532,198 @@ def make_pdf(lines):
     return bytes(pdf)
 
 
+def report_font(size=24, bold=False):
+    candidates = [
+        "C:/Windows/Fonts/segoeuib.ttf" if bold else "C:/Windows/Fonts/segoeui.ttf",
+        "C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/calibrib.ttf" if bold else "C:/Windows/Fonts/calibri.ttf",
+    ]
+    for path in candidates:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    return ImageFont.load_default()
+
+
+def draw_wrapped(draw, text, xy, font, fill=(30, 40, 35), width=86, line_gap=8):
+    x, y = xy
+    words = str(text).split()
+    line = ""
+    for word in words:
+        candidate = f"{line} {word}".strip()
+        if len(candidate) > width and line:
+            draw.text((x, y), line, font=font, fill=fill)
+            y += font.size + line_gap
+            line = word
+        else:
+            line = candidate
+    if line:
+        draw.text((x, y), line, font=font, fill=fill)
+        y += font.size + line_gap
+    return y
+
+
+def draw_centrale_logo(draw, x, y, size=96):
+    draw.rounded_rectangle([x, y, x + size, y + size], radius=8, fill=(6, 49, 73))
+    draw.arc([x + 23, y + 18, x + 70, y + 67], 95, 285, fill=(255, 255, 255), width=7)
+    draw.rectangle([x + 35, y + 49, x + 59, y + 59], fill=(23, 181, 152))
+    draw.polygon([(x + 35, y + 60), (x + 84, y + 34), (x + 60, y + 67), (x + 35, y + 70)], fill=(255, 255, 255))
+    draw.text((x + 16, y + 70), "Centrale", font=report_font(13, True), fill=(255, 255, 255))
+    draw.text((x + 23, y + 85), "CASA", font=report_font(9), fill=(255, 255, 255))
+
+
+def draw_badge(draw, x, y, label, level):
+    colors = {
+        "info": (46, 125, 50),
+        "attention": (249, 168, 37),
+        "critique": (211, 47, 47),
+    }
+    color = colors.get(level, colors["info"])
+    draw.rounded_rectangle([x, y, x + 170, y + 34], radius=10, fill=color)
+    draw.text((x + 14, y + 7), label, font=report_font(17, True), fill=(255, 255, 255))
+
+
+def detection_image_path(payload):
+    det = payload.get("summary", {}).get("last_detection") or {}
+    zone = det.get("zone") or {}
+    image_url = zone.get("image_url") or det.get("image_url")
+    if image_url and image_url.startswith("/received_images/"):
+        candidate = RECEIVED_IMAGES_DIR / image_url.split("/received_images/", 1)[1]
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def draw_detection_image(page, path, box):
+    if not path:
+        return
+    try:
+        img = Image.open(path).convert("RGB")
+        img.thumbnail((box[2] - box[0], box[3] - box[1]))
+        x = box[0] + ((box[2] - box[0]) - img.width) // 2
+        y = box[1] + ((box[3] - box[1]) - img.height) // 2
+        page.paste(img, (x, y))
+    except Exception:
+        return
+
+
+def draw_report_header(draw, title, subtitle, audience):
+    draw.rectangle([0, 0, 1240, 156], fill=(7, 54, 70))
+    draw_centrale_logo(draw, 56, 30, 92)
+    draw.text((170, 36), title, font=report_font(34, True), fill=(255, 255, 255))
+    draw.text((170, 84), subtitle, font=report_font(19), fill=(218, 237, 224))
+    draw_badge(draw, 1010, 54, "FERMIER" if audience == "farmer" else "TECHNICIEN", "info")
+
+
+def make_report_pdf(payload, audience="technician"):
+    audience = "farmer" if audience == "farmer" else "technician"
+    summary = payload.get("summary", {})
+    analytics = summary.get("analytics", {})
+    mechanism = summary.get("mechanism", {})
+    sensors_now = summary.get("sensors", {})
+    alerts = summary.get("alerts", [])
+    last_detection = summary.get("last_detection") or {}
+    detection_zone = last_detection.get("zone") or {}
+    page = Image.new("RGB", (1240, 1754), (245, 248, 245))
+    draw = ImageDraw.Draw(page)
+    title = "Rapport simple pour le fermier" if audience == "farmer" else "Rapport technique AgroShield"
+    draw_report_header(draw, title, f"Genere le {payload['generated_at']} - Centrale Casablanca - Groupe PLBD 3", audience)
+
+    def card(x, y, w, h, heading, color=(255, 255, 255)):
+        draw.rounded_rectangle([x, y, x + w, y + h], radius=18, fill=color, outline=(211, 224, 216), width=2)
+        draw.text((x + 24, y + 22), heading, font=report_font(24, True), fill=(20, 37, 27))
+        return x + 24, y + 66
+
+    if audience == "farmer":
+        y = 190
+        x, ty = card(56, y, 540, 235, "Ce qu'il faut faire maintenant")
+        mode = mechanism.get("mode", "repos")
+        action = "Canaliser la pluie vers le reservoir" if mode == "pluie" else ("Couvrir la culture contre la chaleur" if mode == "chaleur" else "Continuer la surveillance")
+        ty = draw_wrapped(draw, action, (x, ty), report_font(28, True), fill=(22, 90, 48), width=38)
+        draw_wrapped(draw, mechanism.get("description", ""), (x, ty + 8), report_font(19), width=50)
+
+        x, ty = card(644, y, 540, 235, "Alertes")
+        for alert in alerts[:4]:
+            draw_badge(draw, x, ty, alert.get("level", "info").upper(), alert.get("level", "info"))
+            ty = draw_wrapped(draw, f"{alert.get('zone')}: {alert.get('message')} - {alert.get('action')}", (x + 188, ty + 2), report_font(17), width=42)
+            ty += 6
+
+        y = 455
+        x, ty = card(56, y, 540, 330, "Etat de la culture")
+        zones = analytics.get("swi", {}).get("zones", {})
+        for zone, info in zones.items():
+            draw.text((x, ty), f"Zone {zone}: {info.get('score')}/100 - {info.get('recommendation')}", font=report_font(20, True), fill=(20, 80, 44))
+            ty += 38
+        forecast = analytics.get("forecast", {})
+        draw_wrapped(draw, f"Risque maladie dans 7 jours: {forecast.get('peak_risk', '--')}%. {forecast.get('action', '')}", (x, ty + 12), report_font(19), width=48)
+
+        x, ty = card(644, y, 540, 330, "Derniere image IA")
+        image_box = (x, ty, x + 220, ty + 180)
+        draw.rounded_rectangle(image_box, radius=10, fill=(236, 242, 238), outline=(200, 216, 204))
+        draw_detection_image(page, detection_image_path(payload), image_box)
+        info_x = x + 250
+        draw_wrapped(draw, f"Maladie: {last_detection.get('disease', 'Aucune maladie active')}", (info_x, ty), report_font(19, True), width=28)
+        draw_wrapped(draw, f"Classe: {last_detection.get('predicted_class', '--')}", (info_x, ty + 68), report_font(16), width=32)
+        draw_wrapped(draw, f"Heure image: {detection_zone.get('timestamp', last_detection.get('timestamp', '--'))}", (info_x, ty + 135), report_font(16), width=32)
+        draw_wrapped(draw, f"Zone: {detection_zone.get('zone_id', last_detection.get('zone_id', '--'))}", (info_x, ty + 190), report_font(16, True), width=32)
+
+        x, ty = card(56, 820, 1128, 250, "Notifications")
+        draw_wrapped(draw, "Les alertes sont structurees pour email/SMS. Dans cette version, l'envoi reste en simulation tant que SMTP/Twilio ne sont pas configures.", (x, ty), report_font(19), width=92)
+        for alert in alerts[:3]:
+            ty += 50
+            draw_wrapped(draw, f"{alert.get('level').upper()} | capteur: {alert.get('trigger')} | zone: {alert.get('zone')} | action: {alert.get('action')}", (x, ty), report_font(17), width=100)
+    else:
+        y = 190
+        x, ty = card(56, y, 1128, 210, "Synthese systeme et actionneurs")
+        draw_wrapped(draw, f"Culture: {summary.get('crop')} | Mode plaques: {mechanism.get('mode')} | angle plaques: {mechanism.get('plate_angle')} deg | servo: {mechanism.get('servo_angle')} deg", (x, ty), report_font(20, True), width=92)
+        draw_wrapped(draw, f"Description: {mechanism.get('description')}", (x, ty + 46), report_font(18), width=110)
+        draw_wrapped(draw, f"Capteurs: T={sensors_now.get('temperature')}C, HR={sensors_now.get('humidity')}%, pluie={sensors_now.get('precipitation')}mm/h, lumiere={sensors_now.get('luminosity')}lx, sol={sensors_now.get('soil_moisture')}%, reservoir={sensors_now.get('reservoir_level')}%", (x, ty + 95), report_font(18), width=118)
+
+        y = 430
+        x, ty = card(56, y, 540, 330, "Indicateurs techniques")
+        gdd = analytics.get("gdd", {})
+        ndvi = analytics.get("ndvi", {})
+        forecast = analytics.get("forecast", {})
+        draw_wrapped(draw, f"GDD: {gdd.get('cumulative')} degC.j | base {gdd.get('base_temp')}C | stade {gdd.get('stage')} | prochaine etape {gdd.get('next_stage')} dans ~{gdd.get('days_to_next')}j", (x, ty), report_font(18), width=56)
+        draw_wrapped(draw, f"NDVI proxy: {ndvi.get('value')} | GCC {ndvi.get('gcc')} | tendance {ndvi.get('trend')} | methode {ndvi.get('method')}", (x, ty + 92), report_font(18), width=56)
+        draw_wrapped(draw, f"Risque 7j: pic J+{forecast.get('peak_day')} a {forecast.get('peak_risk')}% | {forecast.get('action')}", (x, ty + 184), report_font(18), width=56)
+
+        x, ty = card(644, y, 540, 330, "Alertes multi-niveaux et notifications")
+        for alert in alerts[:5]:
+            draw_badge(draw, x, ty, alert.get("level", "info").upper(), alert.get("level", "info"))
+            draw_wrapped(draw, f"{alert.get('trigger')} | zone {alert.get('zone')} | {alert.get('message')} | {alert.get('action')}", (x + 186, ty + 2), report_font(15), width=42)
+            ty += 58
+        draw_wrapped(draw, "Canaux: Email SMTP et SMS Twilio prevus. Etat actuel: simulation sans envoi externe.", (x, ty + 8), report_font(15), width=56)
+
+        x, ty = card(56, 790, 1128, 300, "Diagnostic IA et image")
+        image_box = (x, ty, x + 250, ty + 200)
+        draw.rounded_rectangle(image_box, radius=10, fill=(236, 242, 238), outline=(200, 216, 204))
+        draw_detection_image(page, detection_image_path(payload), image_box)
+        info_x = x + 280
+        draw_wrapped(draw, f"Classe predite: {last_detection.get('predicted_class', '--')}", (info_x, ty), report_font(18, True), width=70)
+        draw_wrapped(draw, f"Maladie: {last_detection.get('disease', '--')} | Plante: {last_detection.get('plant', '--')} | Confiance: {round(last_detection.get('confidence', 0) * 100)}%", (info_x, ty + 44), report_font(17), width=72)
+        draw_wrapped(draw, f"Heure de prise/analyse: {detection_zone.get('timestamp', last_detection.get('timestamp', '--'))} | Source: {detection_zone.get('source', last_detection.get('source', '--'))}", (info_x, ty + 92), report_font(17), width=72)
+        draw_wrapped(draw, f"Traitement: {(last_detection.get('treatment') or {}).get('treatment_summary', '--')}", (info_x, ty + 140), report_font(17), width=72)
+
+    draw.text((56, 1668), "AgroShield - document genere automatiquement. Valider les actions critiques par observation terrain.", font=report_font(16), fill=(85, 101, 92))
+    out = io.BytesIO()
+    page.save(out, format="PDF", resolution=120.0)
+    return out.getvalue()
+
+
 @app.route("/api/report")
 def report():
-    return jsonify(build_report_payload())
+    return jsonify(build_report_payload(request.args.get("audience", "technician")))
 
 
 @app.route("/api/report.pdf")
 def report_pdf():
-    payload = build_report_payload()
-    pdf = make_pdf(report_lines(payload))
-    filename = f"agroshield-rapport-{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    audience = request.args.get("audience", "technician")
+    payload = build_report_payload(audience)
+    pdf = make_report_pdf(payload, audience)
+    suffix = "fermier" if audience == "farmer" else "technicien"
+    filename = f"agroshield-rapport-{suffix}-{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
     return send_file(io.BytesIO(pdf), mimetype="application/pdf", as_attachment=True, download_name=filename)
 
 
