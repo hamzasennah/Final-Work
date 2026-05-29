@@ -41,6 +41,8 @@ Pour un accès depuis un autre appareil du même réseau, utiliser `http://<adre
 
 - Dashboard capteurs avec température, humidité, précipitation, luminosité, état global et mini tendances.
 - Tableau de décision agronomique: stress hydrique zonal, GDD, risque maladie à 7 jours, NDVI proxy RGB/GCC, centre d'alertes et rapport téléchargeable.
+- Deux modes d'usage: `Fermier` pour les actions simples et immédiates, `Technicien` pour les seuils, historiques, indicateurs détaillés et diagnostic complet.
+- Rapport agronomique PDF réel via `/api/report.pdf`, avec capteurs, plaques, alertes, SWI, GDD, NDVI proxy, risque 7 jours et dernières détections IA.
 - Animation mécanique fidèle au prototype: repos à 0°, plaques horizontales à 90° en forte chaleur, plaques inclinées en pluie pour guider l’eau vers le canal central puis le réservoir.
 - Diagnostic IA par image avec aperçu, classe prédite, confiance, zones A/B/C à traiter et historique avec date + heure.
 - Contrôle hors domaine: si la caméra capture un PC, un document, un objet ou une image qui ne ressemble pas à une feuille du dataset, l'application renvoie `Hors_dataset_non_vegetal` et ne déclenche aucune intervention maladie.
@@ -56,7 +58,8 @@ Pour un accès depuis un autre appareil du même réseau, utiliser `http://<adre
 - `Risque maladie 7 jours`: projection locale à court terme combinant humidité, pluie, chaleur et dernière maladie active.
 - `NDVI proxy caméra`: estimation RGB basée sur Green Chromatic Coordinate, utile comme indicateur de tendance quand la caméra n'est pas multispectrale.
 - `Assistant agronomique`: réponses locales sur les plaques, la pluie, la chaleur, l'irrigation et le risque maladie.
-- `Rapport`: export JSON structuré prêt à convertir en PDF via impression ou intégration future.
+- `Carte zonale SVG`: plan visuel de la serre/champ; les zones A/B/C changent de couleur selon le risque et ouvrent le détail capteurs, maladies et actions au clic.
+- `Rapport`: PDF généré côté serveur, directement téléchargeable depuis l'interface.
 
 ## Modèles IA
 

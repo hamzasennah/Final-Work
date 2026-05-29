@@ -1386,25 +1386,143 @@ def history():
     return jsonify({"history": list(sensor_history)})
 
 
-@app.route("/api/report")
-def report():
+def build_report_payload():
     latest = sensor_history[-1] if sensor_history else get_sensors()
     detections = list(detections_db)[-10:]
-    return jsonify(
-        {
-            "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
-            "project": "AgroShield - Centrale Casablanca - Groupe PLBD 3",
-            "summary": {
-                "crop": latest.get("crop", system_state["current_crop"]),
-                "mechanism": latest.get("mechanism", {}),
-                "alerts": latest.get("alerts_center", []),
-                "analytics": latest.get("analytics", {}),
-                "last_detection": latest_analysis,
+    return {
+        "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        "project": "AgroShield - Centrale Casablanca - Groupe PLBD 3",
+        "summary": {
+            "crop": latest.get("crop", system_state["current_crop"]),
+            "mechanism": latest.get("mechanism", {}),
+            "alerts": latest.get("alerts_center", []),
+            "analytics": latest.get("analytics", {}),
+            "last_detection": latest_analysis,
+            "sensors": {
+                "temperature": latest.get("temperature"),
+                "humidity": latest.get("humidity"),
+                "precipitation": latest.get("precipitation"),
+                "luminosity": latest.get("luminosity"),
+                "soil_moisture": latest.get("soil_moisture"),
+                "reservoir_level": latest.get("reservoir_level"),
             },
-            "detections": detections,
-            "recommendation": "Exporter en PDF via impression navigateur apres validation terrain.",
-        }
-    )
+        },
+        "detections": detections,
+        "recommendation": "Rapport PDF genere automatiquement pour suivi agronomique terrain.",
+    }
+
+
+def pdf_escape(text):
+    return str(text).replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def report_lines(payload):
+    summary = payload["summary"]
+    analytics = summary.get("analytics", {})
+    mechanism = summary.get("mechanism", {})
+    sensors_now = summary.get("sensors", {})
+    lines = [
+        "AgroShield - Rapport agronomique automatise",
+        f"Centrale Casablanca - Groupe PLBD 3",
+        f"Generation: {payload['generated_at']}",
+        "",
+        "1. Etat global",
+        f"Culture suivie: {summary.get('crop', '--')}",
+        f"Mode plaques: {mechanism.get('mode', '--')} | angle plaques {mechanism.get('plate_angle', '--')} deg | servo {mechanism.get('servo_angle', '--')} deg",
+        f"Description: {mechanism.get('description', '--')}",
+        "",
+        "2. Capteurs instantanes",
+        f"Temperature: {sensors_now.get('temperature', '--')} C",
+        f"Humidite air: {sensors_now.get('humidity', '--')} %",
+        f"Precipitation: {sensors_now.get('precipitation', '--')} mm/h",
+        f"Luminosite: {sensors_now.get('luminosity', '--')} lx",
+        f"Humidite sol: {sensors_now.get('soil_moisture', '--')} %",
+        f"Reservoir: {sensors_now.get('reservoir_level', '--')} %",
+        "",
+        "3. Indicateurs agronomiques",
+    ]
+    for zone, info in (analytics.get("swi", {}).get("zones", {}) or {}).items():
+        lines.append(f"SWI Zone {zone}: {info.get('score', '--')}/100 - {info.get('level', '--')} - {info.get('recommendation', '--')}")
+    gdd = analytics.get("gdd", {})
+    lines.append(f"GDD cumule: {gdd.get('cumulative', '--')} degC.j | stade: {gdd.get('stage', '--')} | prochaine etape: {gdd.get('next_stage', '--')} (~{gdd.get('days_to_next', '--')} j)")
+    ndvi = analytics.get("ndvi", {})
+    lines.append(f"NDVI proxy RGB/GCC: {ndvi.get('value', '--')} | GCC {ndvi.get('gcc', '--')} | tendance: {ndvi.get('trend', '--')}")
+    forecast = analytics.get("forecast", {})
+    lines.append(f"Risque maladie 7 jours: pic J+{forecast.get('peak_day', '--')} a {forecast.get('peak_risk', '--')}% | {forecast.get('action', '--')}")
+    lines.extend(["", "4. Alertes et actions recommandees"])
+    alerts = summary.get("alerts", [])
+    if alerts:
+        for alert in alerts:
+            lines.append(f"{alert.get('level', '--').upper()} - {alert.get('zone', '--')}: {alert.get('message', '--')} | Action: {alert.get('action', '--')}")
+    else:
+        lines.append("Aucune alerte critique.")
+    lines.extend(["", "5. Dernieres detections IA"])
+    if payload.get("detections"):
+        for det in payload["detections"]:
+            lines.append(f"{det.get('timestamp', '--')} | Zone {det.get('zone_id', '--')} | {det.get('predicted_class', '--')} | confiance {round(det.get('confidence', 0) * 100)}% | {det.get('treatment', {}).get('treatment_summary', '--')}")
+    else:
+        lines.append("Aucune detection IA enregistree dans cette session.")
+    lines.extend(["", "6. Note methodologique", "SWI: indice operationnel derive des capteurs disponibles, distinct d'une mesure CWSI complete.", "NDVI: proxy RGB base sur Green Chromatic Coordinate, non multispectral.", "Toute intervention terrain doit etre validee par observation agronomique."])
+    return lines
+
+
+def make_pdf(lines):
+    wrapped = []
+    for line in lines:
+        text = str(line)
+        if not text:
+            wrapped.append("")
+            continue
+        while len(text) > 104:
+            wrapped.append(text[:104])
+            text = "  " + text[104:]
+        wrapped.append(text)
+    pages = [wrapped[i:i + 44] for i in range(0, len(wrapped), 44)] or [["Rapport vide"]]
+    objects = []
+    objects.append("<< /Type /Catalog /Pages 2 0 R >>")
+    kids = " ".join(f"{5 + i * 2} 0 R" for i in range(len(pages)))
+    objects.append(f"<< /Type /Pages /Kids [{kids}] /Count {len(pages)} >>")
+    objects.append("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    objects.append("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>")
+    for page_index, page_lines in enumerate(pages):
+        content_id = 6 + page_index * 2
+        objects.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents {content_id} 0 R >>")
+        commands = []
+        y = 792
+        for idx, line in enumerate(page_lines):
+            font = "F2" if (page_index == 0 and idx == 0) or line[:2].endswith(".") else "F1"
+            size = 15 if page_index == 0 and idx == 0 else 10
+            commands.append(f"BT /{font} {size} Tf 48 {y} Td ({pdf_escape(line)}) Tj ET")
+            y -= 17
+        stream = "\n".join(commands)
+        stream_bytes = stream.encode("latin-1", "replace")
+        objects.append(f"<< /Length {len(stream_bytes)} >>\nstream\n{stream}\nendstream")
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{number} 0 obj\n".encode("ascii"))
+        pdf.extend(obj.encode("latin-1", "replace"))
+        pdf.extend(b"\nendobj\n")
+    xref = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("ascii"))
+    for offset in offsets:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(f"trailer << /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode("ascii"))
+    return bytes(pdf)
+
+
+@app.route("/api/report")
+def report():
+    return jsonify(build_report_payload())
+
+
+@app.route("/api/report.pdf")
+def report_pdf():
+    payload = build_report_payload()
+    pdf = make_pdf(report_lines(payload))
+    filename = f"agroshield-rapport-{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    return send_file(io.BytesIO(pdf), mimetype="application/pdf", as_attachment=True, download_name=filename)
 
 
 @app.route("/api/latest_analysis")
