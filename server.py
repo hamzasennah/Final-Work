@@ -1721,7 +1721,7 @@ def draw_detection_image(page, path, box):
         return
     try:
         img = Image.open(path).convert("RGB")
-        img.thumbnail((box[2] - box[0], box[3] - box[1]))
+        img.thumbnail((box[2] - box[0], box[3] - box[1]), Image.Resampling.LANCZOS)
         x = box[0] + ((box[2] - box[0]) - img.width) // 2
         y = box[1] + ((box[3] - box[1]) - img.height) // 2
         page.paste(img, (x, y))
@@ -1763,6 +1763,73 @@ def draw_plate_visual(draw, x, y, mode):
     draw.text((x + 24, y + 22), label, font=report_font(16, True), fill=(20, 37, 27))
 
 
+def report_history_points():
+    raspberry = latest_raspberry_payload.get("data")
+    if raspberry and time.time() - latest_raspberry_payload.get("timestamp", 0) < 180 and sensor_history:
+        return list(sensor_history)[-30:], "raspberry"
+    return get_bouskoura_weather_history(), "open_meteo_bouskoura"
+
+
+def draw_metric_card(draw, x, y, w, h, label, value, color=(46, 125, 50)):
+    draw.rounded_rectangle([x, y, x + w, y + h], radius=14, fill=(249, 252, 249), outline=(211, 224, 216), width=2)
+    draw.text((x + 18, y + 16), label, font=report_font(16, True), fill=(85, 101, 92))
+    draw.text((x + 18, y + 48), str(value), font=report_font(29, True), fill=color)
+
+
+def draw_compact_alerts(draw, alerts, x, y, w):
+    if not alerts:
+        alerts = [{"level": "info", "trigger": "system_health", "zone": "systeme", "message": "Aucune alerte critique"}]
+    palette = {"info": (46, 125, 50), "attention": (249, 168, 37), "critique": (211, 47, 47)}
+    for alert in alerts[:5]:
+        color = palette.get(alert.get("level"), palette["info"])
+        draw.rounded_rectangle([x, y, x + 126, y + 30], radius=8, fill=color)
+        draw.text((x + 12, y + 7), alert.get("level", "info").upper(), font=report_font(14, True), fill=(255, 255, 255))
+        y = draw_wrapped(draw, f"{alert.get('zone', 'systeme')} - {alert.get('message', '')}", (x + 144, y + 3), report_font(14), width=max(32, int(w / 13)))
+        y += 8
+    return y
+
+
+def draw_history_chart(draw, history, x, y, w, h):
+    draw.rounded_rectangle([x, y, x + w, y + h], radius=18, fill=(255, 255, 255), outline=(211, 224, 216), width=2)
+    draw.text((x + 24, y + 20), "Historique graphique complet", font=report_font(26, True), fill=(20, 37, 27))
+    if not history:
+        draw.text((x + 24, y + 76), "Historique indisponible.", font=report_font(18), fill=(85, 101, 92))
+        return
+    plot = (x + 70, y + 92, x + w - 44, y + h - 82)
+    px1, py1, px2, py2 = plot
+    for i in range(5):
+        yy = py1 + i * ((py2 - py1) / 4)
+        draw.line([px1, yy, px2, yy], fill=(225, 233, 226), width=2)
+    metrics = [
+        ("temperature", (211, 47, 47), "Temperature"),
+        ("humidity", (46, 125, 50), "Humidite"),
+        ("precipitation", (47, 128, 237), "Pluie"),
+        ("luminosity", (249, 168, 37), "Luminosite"),
+    ]
+    for key, color, _ in metrics:
+        values = [float(item.get(key, 0) or 0) for item in history]
+        if len(values) < 2:
+            continue
+        mn, mx = min(values), max(values)
+        if mn == mx:
+            mx = mn + 1
+        points = []
+        for idx, value in enumerate(values):
+            xx = px1 + idx * ((px2 - px1) / max(1, len(values) - 1))
+            yy = py2 - ((value - mn) / (mx - mn)) * (py2 - py1)
+            points.append((xx, yy))
+        draw.line(points, fill=color, width=4, joint="curve")
+    lx = x + 70
+    ly = y + h - 54
+    for _, color, label in metrics:
+        draw.rounded_rectangle([lx, ly, lx + 22, ly + 14], radius=4, fill=color)
+        draw.text((lx + 30, ly - 3), label, font=report_font(14, True), fill=(85, 101, 92))
+        lx += 190
+    first = history[0].get("timestamp", "--")
+    last = history[-1].get("timestamp", "--")
+    draw.text((x + 24, y + h - 28), f"Periode: {first} -> {last}", font=report_font(13), fill=(85, 101, 92))
+
+
 def make_report_pdf(payload, audience="technician"):
     audience = "farmer" if audience == "farmer" else "technician"
     summary = payload.get("summary", {})
@@ -1772,9 +1839,10 @@ def make_report_pdf(payload, audience="technician"):
     alerts = summary.get("alerts", [])
     last_detection = summary.get("last_detection") or {}
     detection_zone = last_detection.get("zone") or {}
-    page = Image.new("RGB", (1240, 1754), (245, 248, 245))
+    pages = []
+    page = Image.new("RGB", (1240, 1754), (246, 249, 247))
     draw = ImageDraw.Draw(page)
-    title = "Rapport simple pour le fermier" if audience == "farmer" else "Rapport technique AgroShield"
+    title = "Rapport fermier" if audience == "farmer" else "Rapport technique AgroShield"
     draw_report_header(draw, title, f"Genere le {payload['generated_at']} - Centrale Casablanca - Groupe PLBD 3", audience)
 
     def card(x, y, w, h, heading, color=(255, 255, 255)):
@@ -1783,50 +1851,49 @@ def make_report_pdf(payload, audience="technician"):
         return x + 24, y + 66
 
     if audience == "farmer":
-        y = 190
-        x, ty = card(56, y, 540, 235, "Etat actuel")
         mode = mechanism.get("mode", "repos")
         state = "Pluie forte" if mode == "pluie" else ("Forte chaleur" if mode == "chaleur" else "Repos")
-        ty = draw_wrapped(draw, state, (x, ty), report_font(30, True), fill=(22, 90, 48), width=38)
-        draw_wrapped(draw, mechanism.get("description", ""), (x, ty + 8), report_font(19), width=50)
-        draw_wrapped(draw, f"Meteo {summary.get('location', BOUSKOURA['label'])}: {sensors_now.get('temperature', '--')} C, pluie {sensors_now.get('precipitation', '--')} mm/h, humidite {sensors_now.get('humidity', '--')}%.", (x, ty + 92), report_font(17), width=52)
+        x, ty = card(56, 190, 1128, 258, "Etat instantane")
+        draw_metric_card(draw, x, ty, 244, 96, "Meteo Bouskoura", f"{sensors_now.get('temperature', '--')} C")
+        draw_metric_card(draw, x + 270, ty, 224, 96, "Humidite", f"{sensors_now.get('humidity', '--')}%")
+        draw_metric_card(draw, x + 520, ty, 224, 96, "Pluie", f"{sensors_now.get('precipitation', '--')} mm/h", (47, 128, 237))
+        draw_metric_card(draw, x + 770, ty, 288, 96, "Plaques", state)
+        draw_wrapped(draw, mechanism.get("description", ""), (x, ty + 118), report_font(18), width=110)
+        draw.text((x, ty + 174), f"Source: {summary.get('weather_source', '--')} | Culture: {summary.get('crop', '--')}", font=report_font(15, True), fill=(85, 101, 92))
 
-        x, ty = card(644, y, 540, 235, "Position des plaques")
-        draw_plate_visual(draw, x + 20, ty - 12, mode)
+        x, ty = card(56, 480, 540, 348, "Position des plaques")
+        draw_plate_visual(draw, x + 28, ty + 10, mode)
 
-        y = 455
-        x, ty = card(56, y, 540, 330, "Zones A/B/C")
+        x, ty = card(644, 480, 540, 348, "Zones A/B/C")
         zones = analytics.get("zones", {})
         for zone, info in zones.items():
-            draw.text((x, ty), f"Zone {zone}: {info.get('status', '--')}", font=report_font(20, True), fill=(20, 80, 44))
-            ty += 38
+            level_color = (211, 47, 47) if info.get("level") == "critique" else ((249, 168, 37) if info.get("level") == "attention" else (46, 125, 50))
+            draw.rounded_rectangle([x, ty, x + 56, ty + 32], radius=8, fill=level_color)
+            draw.text((x + 18, ty + 6), zone, font=report_font(17, True), fill=(255, 255, 255))
+            draw_wrapped(draw, info.get("status", "--"), (x + 72, ty + 2), report_font(17, True), width=42)
+            ty += 62
         forecast = analytics.get("forecast", {})
-        draw_wrapped(draw, f"Risque maladie estime sur 7 jours: {forecast.get('peak_risk', '--')}%.", (x, ty + 12), report_font(19), width=48)
+        draw.text((x, ty + 12), f"Risque maladie 7 jours: {forecast.get('peak_risk', '--')}%", font=report_font(19, True), fill=(20, 37, 27))
 
-        x, ty = card(644, y, 540, 330, "Derniere image IA")
-        image_box = (x, ty, x + 220, ty + 180)
+        x, ty = card(56, 860, 540, 420, "Derniere image IA")
+        image_box = (x, ty, x + 250, ty + 250)
         draw.rounded_rectangle(image_box, radius=10, fill=(236, 242, 238), outline=(200, 216, 204))
         draw_detection_image(page, detection_image_path(payload), image_box)
-        info_x = x + 250
-        draw_wrapped(draw, f"Maladie: {last_detection.get('disease', 'Aucune maladie active')}", (info_x, ty), report_font(19, True), width=28)
-        draw_wrapped(draw, f"Classe: {last_detection.get('predicted_class', '--')}", (info_x, ty + 68), report_font(16), width=32)
-        draw_wrapped(draw, f"Heure image: {detection_zone.get('timestamp', last_detection.get('timestamp', '--'))}", (info_x, ty + 135), report_font(16), width=32)
-        draw_wrapped(draw, f"Zone: {detection_zone.get('zone_id', last_detection.get('zone_id', '--'))}", (info_x, ty + 190), report_font(16, True), width=32)
+        info_x = x + 280
+        draw_wrapped(draw, last_detection.get("disease", "Aucune maladie active"), (info_x, ty), report_font(22, True), width=24)
+        draw_wrapped(draw, f"Classe: {last_detection.get('predicted_class', '--')}", (info_x, ty + 78), report_font(16), width=30)
+        draw_wrapped(draw, f"Heure image: {detection_zone.get('timestamp', last_detection.get('timestamp', '--'))}", (info_x, ty + 142), report_font(16), width=30)
+        draw.text((info_x, ty + 226), f"Zone: {detection_zone.get('zone_id', last_detection.get('zone_id', '--'))}", font=report_font(18, True), fill=(20, 37, 27))
 
-        x, ty = card(56, 820, 1128, 250, "Alertes visibles")
-        draw_wrapped(draw, "Cette partie affiche uniquement l'etat du systeme et les niveaux d'alerte instantanes.", (x, ty), report_font(19), width=92)
-        for alert in alerts[:3]:
-            ty += 50
-            draw_wrapped(draw, f"{alert.get('level').upper()} | capteur: {alert.get('trigger')} | zone: {alert.get('zone')} | {alert.get('message')}", (x, ty), report_font(17), width=100)
+        x, ty = card(644, 860, 540, 420, "Alertes visibles")
+        draw_compact_alerts(draw, alerts, x, ty, 470)
     else:
-        y = 190
-        x, ty = card(56, y, 1128, 210, "Synthese systeme et actionneurs")
+        x, ty = card(56, 190, 1128, 238, "Synthese systeme et actionneurs")
         draw_wrapped(draw, f"Culture: {summary.get('crop')} | Mode plaques: {mechanism.get('mode')} | angle plaques: {mechanism.get('plate_angle')} deg | servo: {mechanism.get('servo_angle')} deg", (x, ty), report_font(20, True), width=92)
         draw_wrapped(draw, f"Description: {mechanism.get('description')}", (x, ty + 46), report_font(18), width=110)
-        draw_wrapped(draw, f"Capteurs: T={sensors_now.get('temperature')}C, HR={sensors_now.get('humidity')}%, pluie={sensors_now.get('precipitation')}mm/h, lumiere={sensors_now.get('luminosity')}lx, sol={sensors_now.get('soil_moisture')}%, reservoir={sensors_now.get('reservoir_level')}%", (x, ty + 95), report_font(18), width=118)
+        draw_wrapped(draw, f"Meteo/capteurs: T={sensors_now.get('temperature')}C, HR={sensors_now.get('humidity')}%, pluie={sensors_now.get('precipitation')}mm/h, lumiere={sensors_now.get('luminosity')}lx, reservoir={sensors_now.get('reservoir_level')}% | source {summary.get('weather_source', '--')}", (x, ty + 95), report_font(18), width=118)
 
-        y = 430
-        x, ty = card(56, y, 540, 330, "Indicateurs techniques")
+        x, ty = card(56, 460, 540, 300, "Indicateurs techniques")
         gdd = analytics.get("gdd", {})
         ndvi = analytics.get("ndvi", {})
         forecast = analytics.get("forecast", {})
@@ -1834,26 +1901,34 @@ def make_report_pdf(payload, audience="technician"):
         draw_wrapped(draw, f"NDVI proxy: {ndvi.get('value')} | GCC {ndvi.get('gcc')} | tendance {ndvi.get('trend')} | methode {ndvi.get('method')}", (x, ty + 92), report_font(18), width=56)
         draw_wrapped(draw, f"Risque 7j: pic J+{forecast.get('peak_day')} a {forecast.get('peak_risk')}% | {forecast.get('action')}", (x, ty + 184), report_font(18), width=56)
 
-        x, ty = card(644, y, 540, 330, "Alertes multi-niveaux et notifications")
-        for alert in alerts[:5]:
-            draw_badge(draw, x, ty, alert.get("level", "info").upper(), alert.get("level", "info"))
-            draw_wrapped(draw, f"{alert.get('trigger')} | zone {alert.get('zone')} | {alert.get('message')} | {alert.get('action')}", (x + 186, ty + 2), report_font(15), width=42)
-            ty += 58
-        draw_wrapped(draw, "Les alertes restent locales dans l'application et dans le rapport.", (x, ty + 8), report_font(15), width=56)
+        x, ty = card(644, 460, 540, 300, "Alertes multi-niveaux")
+        draw_compact_alerts(draw, alerts, x, ty, 470)
 
-        x, ty = card(56, 790, 1128, 300, "Diagnostic IA et image")
-        image_box = (x, ty, x + 250, ty + 200)
+        x, ty = card(56, 792, 1128, 360, "Diagnostic IA et image")
+        image_box = (x, ty, x + 320, ty + 250)
         draw.rounded_rectangle(image_box, radius=10, fill=(236, 242, 238), outline=(200, 216, 204))
         draw_detection_image(page, detection_image_path(payload), image_box)
-        info_x = x + 280
+        info_x = x + 360
         draw_wrapped(draw, f"Classe predite: {last_detection.get('predicted_class', '--')}", (info_x, ty), report_font(18, True), width=70)
         draw_wrapped(draw, f"Maladie: {last_detection.get('disease', '--')} | Plante: {last_detection.get('plant', '--')} | Confiance: {round(last_detection.get('confidence', 0) * 100)}%", (info_x, ty + 44), report_font(17), width=72)
         draw_wrapped(draw, f"Heure de prise/analyse: {detection_zone.get('timestamp', last_detection.get('timestamp', '--'))} | Source: {detection_zone.get('source', last_detection.get('source', '--'))}", (info_x, ty + 92), report_font(17), width=72)
         draw_wrapped(draw, f"Traitement: {(last_detection.get('treatment') or {}).get('treatment_summary', '--')}", (info_x, ty + 140), report_font(17), width=72)
 
+        history, history_source = report_history_points()
+        page2 = Image.new("RGB", (1240, 1754), (246, 249, 247))
+        draw2 = ImageDraw.Draw(page2)
+        draw_report_header(draw2, "Rapport technique - historique", f"Historique graphique complet - {history_source}", audience)
+        draw_history_chart(draw2, history, 56, 190, 1128, 650)
+        x2, y2 = 80, 900
+        draw2.text((x2, y2), "Lecture technique", font=report_font(28, True), fill=(20, 37, 27))
+        y2 += 54
+        draw_wrapped(draw2, "Les courbes affichent les derniers points reels disponibles. Si la Raspberry transmet des mesures recentes, le rapport utilise ces capteurs. Sinon, il utilise la meteo reelle Bouskoura via Open-Meteo.", (x2, y2), report_font(20), width=98)
+        pages.append(page2)
+
     draw.text((56, 1668), "AgroShield - document genere automatiquement. Valider les actions critiques par observation terrain.", font=report_font(16), fill=(85, 101, 92))
+    pages.insert(0, page)
     out = io.BytesIO()
-    page.save(out, format="PDF", resolution=120.0)
+    pages[0].save(out, format="PDF", save_all=True, append_images=pages[1:], resolution=140.0)
     return out.getvalue()
 
 
