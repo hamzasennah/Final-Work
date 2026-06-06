@@ -14,6 +14,8 @@ import io
 import json
 import random
 import time
+import urllib.parse
+import urllib.request
 
 try:
     import torch
@@ -34,10 +36,8 @@ CORS(app)
 
 BASE_DIR = Path(__file__).parent
 RECEIVED_IMAGES_DIR = Path(r"C:\Users\pc\Desktop\reception des images")
-ALERT_CHANNELS = {
-    "email": {"enabled": False, "provider": "SMTP", "status": "simulation - config SMTP non renseignee"},
-    "sms": {"enabled": False, "provider": "Twilio", "status": "simulation - identifiants Twilio non renseignes"},
-}
+BOUSKOURA = {"label": "Bouskoura", "latitude": 33.4497, "longitude": -7.6481}
+WEATHER_CACHE = {"current": None, "current_ts": 0, "history": None, "history_ts": 0}
 MODELS_DIR = BASE_DIR / "models"
 EFF_PTH_CANDIDATES = [
     MODELS_DIR / "efficientnet_b0.pth",
@@ -469,6 +469,119 @@ CLIMATE_IMPACT_BY_CLASS = {
 }
 
 
+def open_meteo_url(params):
+    query = urllib.parse.urlencode(params, doseq=True)
+    return f"https://api.open-meteo.com/v1/forecast?{query}"
+
+
+def fetch_json_url(url, timeout=8):
+    with urllib.request.urlopen(url, timeout=timeout) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def estimate_luminosity_from_radiation(radiation):
+    if radiation is None:
+        return 420.0
+    return round(max(0, min(900, float(radiation) * 0.7)), 1)
+
+
+def fallback_bouskoura_weather():
+    hour = datetime.datetime.now().hour
+    daylight = 7 <= hour <= 19
+    return {
+        "temperature": 24.0,
+        "humidity": 62.0,
+        "precipitation": 0.0,
+        "luminosity": 520.0 if daylight else 80.0,
+        "soil_moisture": 64.0,
+        "reservoir_level": 55.0,
+        "crop": system_state["current_crop"],
+        "mode": "meteo_bouskoura_fallback",
+        "source": "meteo_bouskoura_fallback",
+        "location": BOUSKOURA["label"],
+    }
+
+
+def get_bouskoura_current_weather():
+    now = time.time()
+    if WEATHER_CACHE["current"] and now - WEATHER_CACHE["current_ts"] < 600:
+        return dict(WEATHER_CACHE["current"])
+    params = {
+        "latitude": BOUSKOURA["latitude"],
+        "longitude": BOUSKOURA["longitude"],
+        "current": "temperature_2m,relative_humidity_2m,precipitation,shortwave_radiation",
+        "timezone": "Africa/Casablanca",
+    }
+    try:
+        payload = fetch_json_url(open_meteo_url(params))
+        current = payload.get("current", {})
+        data = {
+            "temperature": round(float(current.get("temperature_2m", 24.0)), 1),
+            "humidity": round(float(current.get("relative_humidity_2m", 62.0)), 1),
+            "precipitation": round(float(current.get("precipitation", 0.0)), 1),
+            "luminosity": estimate_luminosity_from_radiation(current.get("shortwave_radiation")),
+            "soil_moisture": 64.0,
+            "reservoir_level": 55.0,
+            "crop": system_state["current_crop"],
+            "mode": "meteo_bouskoura",
+            "source": "open_meteo_bouskoura",
+            "location": BOUSKOURA["label"],
+            "weather_time": current.get("time"),
+        }
+    except Exception:
+        data = fallback_bouskoura_weather()
+    WEATHER_CACHE.update({"current": data, "current_ts": now})
+    return dict(data)
+
+
+def get_bouskoura_weather_history():
+    now = time.time()
+    if WEATHER_CACHE["history"] and now - WEATHER_CACHE["history_ts"] < 900:
+        return [dict(item) for item in WEATHER_CACHE["history"]]
+    params = {
+        "latitude": BOUSKOURA["latitude"],
+        "longitude": BOUSKOURA["longitude"],
+        "hourly": "temperature_2m,relative_humidity_2m,precipitation,shortwave_radiation",
+        "timezone": "Africa/Casablanca",
+        "past_days": 1,
+        "forecast_days": 1,
+    }
+    try:
+        payload = fetch_json_url(open_meteo_url(params))
+        hourly = payload.get("hourly", {})
+        times = hourly.get("time", [])
+        temperatures = hourly.get("temperature_2m", [])
+        humidity = hourly.get("relative_humidity_2m", [])
+        precipitation = hourly.get("precipitation", [])
+        radiation = hourly.get("shortwave_radiation", [])
+        current_time = datetime.datetime.now()
+        points = []
+        for idx, stamp in enumerate(times):
+            try:
+                point_time = datetime.datetime.fromisoformat(stamp)
+            except ValueError:
+                continue
+            if point_time > current_time:
+                continue
+            points.append(
+                {
+                    "timestamp": stamp,
+                    "temperature": round(float(temperatures[idx]), 1),
+                    "humidity": round(float(humidity[idx]), 1),
+                    "precipitation": round(float(precipitation[idx]), 1),
+                    "luminosity": estimate_luminosity_from_radiation(radiation[idx]),
+                    "source": "open_meteo_bouskoura",
+                    "location": BOUSKOURA["label"],
+                }
+            )
+        history_points = points[-30:]
+    except Exception:
+        current = get_bouskoura_current_weather()
+        history_points = [{**current, "timestamp": datetime.datetime.now().isoformat(timespec="minutes")}]
+    WEATHER_CACHE.update({"history": history_points, "history_ts": now})
+    return [dict(item) for item in history_points]
+
+
 
 def classify_mechanical_mode(sensors, crop="default"):
     th = CROP_THRESHOLDS.get(crop, CROP_THRESHOLDS["default"])
@@ -758,6 +871,34 @@ def compute_zone_swi(data, crop="default"):
     return zones
 
 
+def compute_zone_status(data, disease_context=None):
+    zones = {
+        zone: {
+            "level": "normal",
+            "status": "Stable",
+            "reason": "Aucune maladie active sur cette zone.",
+        }
+        for zone in ("A", "B", "C")
+    }
+    if disease_context:
+        active_zone = disease_context.get("zone", "A")
+        risk = round(disease_context.get("combined_risk", 0) * 100)
+        if active_zone in zones:
+            zones[active_zone] = {
+                "level": "critique" if risk >= 75 else "attention",
+                "status": f"Maladie active - risque {risk}%",
+                "reason": disease_context.get("disease", "Maladie detectee"),
+            }
+        for neighbor in ADJACENT_ZONES.get(active_zone, []):
+            if zones[neighbor]["level"] == "normal":
+                zones[neighbor] = {
+                    "level": "attention" if risk >= 70 else "normal",
+                    "status": "Zone voisine sous surveillance",
+                    "reason": f"Voisine de la zone {active_zone}",
+                }
+    return zones
+
+
 def compute_gdd(data, crop="default"):
     model = CROP_DECISION_MODELS.get(crop, CROP_DECISION_MODELS["default"])
     try:
@@ -830,11 +971,10 @@ def compute_risk_forecast(data, crop="default", disease_context=None):
 
 def build_alerts(data, analytics, disease_context=None):
     alerts = []
-    for zone, info in analytics["swi"]["zones"].items():
-        if info["score"] >= 75:
-            alerts.append({"level": "critique", "trigger": "soil_moisture", "zone": zone, "message": f"Stress hydrique zone {zone}: {info['score']}/100", "action": "Irrigation automatique recommandee"})
-        elif info["score"] >= 55:
-            alerts.append({"level": "attention", "trigger": "soil_moisture", "zone": zone, "message": f"Stress hydrique modere zone {zone}", "action": "Verifier humidite du sol"})
+    if data["alerts"]["temperature"]:
+        alerts.append({"level": "attention", "trigger": "temperature", "zone": "systeme", "message": f"Temperature elevee: {data['temperature']} C", "action": "Plaques en couverture si le seuil culture est confirme."})
+    if data["alerts"]["precipitation"] or data["alerts"]["humidity"]:
+        alerts.append({"level": "attention", "trigger": "pluie_humidite", "zone": "systeme", "message": f"Pluie/humidite elevee: {data['precipitation']} mm/h, {data['humidity']}%", "action": "Plaques inclinees si le seuil pluie est confirme."})
     if analytics["forecast"]["peak_risk"] >= 75:
         alerts.append({"level": "critique", "trigger": "disease_forecast", "zone": disease_context.get("zone", "A") if disease_context else "A/B/C", "message": f"Risque maladie J+{analytics['forecast']['peak_day']}: {analytics['forecast']['peak_risk']}%", "action": analytics["forecast"]["action"]})
     elif analytics["forecast"]["peak_risk"] >= 55:
@@ -843,21 +983,12 @@ def build_alerts(data, analytics, disease_context=None):
         alerts.append({"level": "info", "trigger": "actuator_command", "zone": "systeme", "message": f"Plaques en mode {data['mechanism']['mode']}", "action": data["actuator_command"]["reason"]})
     if not alerts:
         alerts.append({"level": "info", "trigger": "system_health", "zone": "systeme", "message": "Aucune alerte critique", "action": "Continuer la surveillance"})
-    for alert in alerts:
-        alert["delivery"] = {
-            "email": ALERT_CHANNELS["email"],
-            "sms": ALERT_CHANNELS["sms"],
-            "payload": {
-                "subject": f"AgroShield {alert['level'].upper()} - {alert['zone']}",
-                "body": f"{alert['message']} | Action: {alert['action']} | Capteur: {alert['trigger']}",
-            },
-        }
     return alerts[:6]
 
 
 def compute_decision_analytics(data, crop="default", disease_context=None):
     analytics = {
-        "swi": {"zones": compute_zone_swi(data, crop), "method": "Indice operationnel derive humidite sol, temperature, humidite air, pluie et luminosite"},
+        "zones": compute_zone_status(data, disease_context),
         "gdd": compute_gdd(data, crop),
         "ndvi": compute_ndvi_proxy(data),
     }
@@ -937,36 +1068,9 @@ def get_sensors():
         data["last_update"] = latest_raspberry_payload["timestamp"]
         return decorate_sensor_payload(data, data.get("crop", system_state["current_crop"]))
 
-    # The simulation deliberately creates occasional heat and rain peaks so the
-    # interface visibly demonstrates all mechanical positions during a defense.
-    event = random.choices(["normal", "heat", "rain"], weights=[0.58, 0.22, 0.20], k=1)[0]
-    if event == "heat":
-        temperature = random.uniform(29, 37)
-        humidity = random.uniform(42, 68)
-        precipitation = random.uniform(0, 5)
-        luminosity = random.uniform(680, 920)
-    elif event == "rain":
-        temperature = random.uniform(20, 28)
-        humidity = random.uniform(82, 96)
-        precipitation = random.uniform(20, 48)
-        luminosity = random.uniform(120, 430)
-    else:
-        temperature = random.uniform(22, 27)
-        humidity = random.uniform(48, 72)
-        precipitation = random.uniform(0, 7)
-        luminosity = random.uniform(280, 620)
-
-    data = {
-        "temperature": round(temperature, 1),
-        "humidity": round(humidity, 1),
-        "precipitation": round(precipitation, 1),
-        "luminosity": round(luminosity, 1),
-        "soil_moisture": round(random.uniform(48, 78), 1),
-        "reservoir_level": round(random.uniform(42, 92), 1),
-        "mode": "simulation",
-        "last_update": time.time(),
-        "crop": system_state["current_crop"],
-    }
+    data = get_bouskoura_current_weather()
+    data["last_update"] = time.time()
+    data["crop"] = system_state["current_crop"]
     return decorate_sensor_payload(data, system_state["current_crop"])
 
 
@@ -1400,12 +1504,19 @@ def raspberry_sensors():
 
 @app.route("/api/history")
 def history():
-    return jsonify({"history": list(sensor_history)})
+    raspberry = latest_raspberry_payload.get("data")
+    if raspberry and time.time() - latest_raspberry_payload.get("timestamp", 0) < 180:
+        return jsonify({"history": list(sensor_history), "source": "raspberry"})
+    return jsonify({"history": get_bouskoura_weather_history(), "source": "open_meteo_bouskoura"})
 
 
 def build_report_payload(audience="technician"):
     latest = sensor_history[-1] if sensor_history else get_sensors()
     detections = list(detections_db)[-10:]
+    last_detection = latest_analysis
+    if last_detection is None and detections:
+        last = detections[-1]
+        last_detection = {**last, "zone": last}
     audience = "farmer" if audience == "farmer" else "technician"
     return {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -1416,7 +1527,9 @@ def build_report_payload(audience="technician"):
             "mechanism": latest.get("mechanism", {}),
             "alerts": latest.get("alerts_center", []),
             "analytics": latest.get("analytics", {}),
-            "last_detection": latest_analysis,
+            "last_detection": last_detection,
+            "weather_source": latest.get("source", latest.get("mode", "--")),
+            "location": latest.get("location", BOUSKOURA["label"]),
             "sensors": {
                 "temperature": latest.get("temperature"),
                 "humidity": latest.get("humidity"),
@@ -1428,7 +1541,6 @@ def build_report_payload(audience="technician"):
         },
         "detections": detections,
         "recommendation": "Rapport PDF genere automatiquement pour suivi agronomique terrain.",
-        "notification_channels": ALERT_CHANNELS,
     }
 
 
@@ -1461,8 +1573,8 @@ def report_lines(payload):
         "",
         "3. Indicateurs agronomiques",
     ]
-    for zone, info in (analytics.get("swi", {}).get("zones", {}) or {}).items():
-        lines.append(f"SWI Zone {zone}: {info.get('score', '--')}/100 - {info.get('level', '--')} - {info.get('recommendation', '--')}")
+    for zone, info in (analytics.get("zones", {}) or {}).items():
+        lines.append(f"Zone {zone}: {info.get('status', '--')} - {info.get('level', '--')} - {info.get('reason', '--')}")
     gdd = analytics.get("gdd", {})
     lines.append(f"GDD cumule: {gdd.get('cumulative', '--')} degC.j | stade: {gdd.get('stage', '--')} | prochaine etape: {gdd.get('next_stage', '--')} (~{gdd.get('days_to_next', '--')} j)")
     ndvi = analytics.get("ndvi", {})
@@ -1482,7 +1594,7 @@ def report_lines(payload):
             lines.append(f"{det.get('timestamp', '--')} | Zone {det.get('zone_id', '--')} | {det.get('predicted_class', '--')} | confiance {round(det.get('confidence', 0) * 100)}% | {det.get('treatment', {}).get('treatment_summary', '--')}")
     else:
         lines.append("Aucune detection IA enregistree dans cette session.")
-    lines.extend(["", "6. Note methodologique", "SWI: indice operationnel derive des capteurs disponibles, distinct d'une mesure CWSI complete.", "NDVI: proxy RGB base sur Green Chromatic Coordinate, non multispectral.", "Toute intervention terrain doit etre validee par observation agronomique."])
+    lines.extend(["", "6. Note methodologique", "NDVI: proxy RGB base sur Green Chromatic Coordinate, non multispectral.", "Toute intervention terrain doit etre validee par observation agronomique."])
     return lines
 
 
@@ -1585,11 +1697,20 @@ def draw_badge(draw, x, y, label, level):
 
 
 def detection_image_path(payload):
+    candidates = []
     det = payload.get("summary", {}).get("last_detection") or {}
-    zone = det.get("zone") or {}
-    image_url = zone.get("image_url") or det.get("image_url")
-    if image_url and image_url.startswith("/received_images/"):
-        candidate = RECEIVED_IMAGES_DIR / image_url.split("/received_images/", 1)[1]
+    if det:
+        zone = det.get("zone") or {}
+        candidates.extend([zone.get("image_url"), det.get("image_url"), zone.get("filename"), det.get("filename")])
+    for item in reversed(payload.get("detections", [])):
+        candidates.extend([item.get("image_url"), item.get("filename")])
+    for value in candidates:
+        if not value:
+            continue
+        if str(value).startswith("/received_images/"):
+            candidate = RECEIVED_IMAGES_DIR / str(value).split("/received_images/", 1)[1]
+        else:
+            candidate = RECEIVED_IMAGES_DIR / str(value)
         if candidate.exists():
             return candidate
     return None
@@ -1616,6 +1737,32 @@ def draw_report_header(draw, title, subtitle, audience):
     draw_badge(draw, 1010, 54, "FERMIER" if audience == "farmer" else "TECHNICIEN", "info")
 
 
+def draw_plate_visual(draw, x, y, mode):
+    draw.rounded_rectangle([x, y, x + 410, y + 190], radius=16, fill=(237, 246, 240), outline=(200, 216, 204), width=2)
+    draw.rectangle([x + 46, y + 128, x + 364, y + 160], fill=(92, 151, 78), outline=(43, 57, 51), width=4)
+    draw.line([x + 90, y + 60, x + 90, y + 132], fill=(43, 57, 51), width=8)
+    draw.line([x + 320, y + 60, x + 320, y + 132], fill=(43, 57, 51), width=8)
+    draw.ellipse([x + 68, y + 42, x + 112, y + 86], fill=(189, 199, 198), outline=(61, 72, 68), width=5)
+    draw.ellipse([x + 298, y + 42, x + 342, y + 86], fill=(189, 199, 198), outline=(61, 72, 68), width=5)
+    if mode == "chaleur":
+        left = [(x + 90, y + 54), (x + 205, y + 54), (x + 205, y + 78), (x + 90, y + 78)]
+        right = [(x + 205, y + 54), (x + 320, y + 54), (x + 320, y + 78), (x + 205, y + 78)]
+        label = "Plaques horizontales - couverture chaleur"
+    elif mode == "pluie":
+        left = [(x + 90, y + 58), (x + 205, y + 96), (x + 200, y + 120), (x + 86, y + 82)]
+        right = [(x + 320, y + 58), (x + 205, y + 96), (x + 210, y + 120), (x + 324, y + 82)]
+        label = "Plaques inclinees - eau vers canal"
+        draw.line([x + 205, y + 106, x + 205, y + 150, x + 330, y + 150], fill=(47, 128, 237), width=7)
+        draw.rectangle([x + 334, y + 130, x + 380, y + 168], fill=(117, 184, 233), outline=(81, 98, 106), width=4)
+    else:
+        left = [(x + 90, y + 58), (x + 128, y + 124), (x + 108, y + 136), (x + 70, y + 70)]
+        right = [(x + 320, y + 58), (x + 282, y + 124), (x + 302, y + 136), (x + 340, y + 70)]
+        label = "Repos - plaques abaissees"
+    draw.polygon(left, fill=(214, 221, 224), outline=(61, 72, 76))
+    draw.polygon(right, fill=(214, 221, 224), outline=(61, 72, 76))
+    draw.text((x + 24, y + 22), label, font=report_font(16, True), fill=(20, 37, 27))
+
+
 def make_report_pdf(payload, audience="technician"):
     audience = "farmer" if audience == "farmer" else "technician"
     summary = payload.get("summary", {})
@@ -1637,26 +1784,24 @@ def make_report_pdf(payload, audience="technician"):
 
     if audience == "farmer":
         y = 190
-        x, ty = card(56, y, 540, 235, "Ce qu'il faut faire maintenant")
+        x, ty = card(56, y, 540, 235, "Etat actuel")
         mode = mechanism.get("mode", "repos")
-        action = "Canaliser la pluie vers le reservoir" if mode == "pluie" else ("Couvrir la culture contre la chaleur" if mode == "chaleur" else "Continuer la surveillance")
-        ty = draw_wrapped(draw, action, (x, ty), report_font(28, True), fill=(22, 90, 48), width=38)
+        state = "Pluie forte" if mode == "pluie" else ("Forte chaleur" if mode == "chaleur" else "Repos")
+        ty = draw_wrapped(draw, state, (x, ty), report_font(30, True), fill=(22, 90, 48), width=38)
         draw_wrapped(draw, mechanism.get("description", ""), (x, ty + 8), report_font(19), width=50)
+        draw_wrapped(draw, f"Meteo {summary.get('location', BOUSKOURA['label'])}: {sensors_now.get('temperature', '--')} C, pluie {sensors_now.get('precipitation', '--')} mm/h, humidite {sensors_now.get('humidity', '--')}%.", (x, ty + 92), report_font(17), width=52)
 
-        x, ty = card(644, y, 540, 235, "Alertes")
-        for alert in alerts[:4]:
-            draw_badge(draw, x, ty, alert.get("level", "info").upper(), alert.get("level", "info"))
-            ty = draw_wrapped(draw, f"{alert.get('zone')}: {alert.get('message')} - {alert.get('action')}", (x + 188, ty + 2), report_font(17), width=42)
-            ty += 6
+        x, ty = card(644, y, 540, 235, "Position des plaques")
+        draw_plate_visual(draw, x + 20, ty - 12, mode)
 
         y = 455
-        x, ty = card(56, y, 540, 330, "Etat de la culture")
-        zones = analytics.get("swi", {}).get("zones", {})
+        x, ty = card(56, y, 540, 330, "Zones A/B/C")
+        zones = analytics.get("zones", {})
         for zone, info in zones.items():
-            draw.text((x, ty), f"Zone {zone}: {info.get('score')}/100 - {info.get('recommendation')}", font=report_font(20, True), fill=(20, 80, 44))
+            draw.text((x, ty), f"Zone {zone}: {info.get('status', '--')}", font=report_font(20, True), fill=(20, 80, 44))
             ty += 38
         forecast = analytics.get("forecast", {})
-        draw_wrapped(draw, f"Risque maladie dans 7 jours: {forecast.get('peak_risk', '--')}%. {forecast.get('action', '')}", (x, ty + 12), report_font(19), width=48)
+        draw_wrapped(draw, f"Risque maladie estime sur 7 jours: {forecast.get('peak_risk', '--')}%.", (x, ty + 12), report_font(19), width=48)
 
         x, ty = card(644, y, 540, 330, "Derniere image IA")
         image_box = (x, ty, x + 220, ty + 180)
@@ -1668,11 +1813,11 @@ def make_report_pdf(payload, audience="technician"):
         draw_wrapped(draw, f"Heure image: {detection_zone.get('timestamp', last_detection.get('timestamp', '--'))}", (info_x, ty + 135), report_font(16), width=32)
         draw_wrapped(draw, f"Zone: {detection_zone.get('zone_id', last_detection.get('zone_id', '--'))}", (info_x, ty + 190), report_font(16, True), width=32)
 
-        x, ty = card(56, 820, 1128, 250, "Notifications")
-        draw_wrapped(draw, "Les alertes sont structurees pour email/SMS. Dans cette version, l'envoi reste en simulation tant que SMTP/Twilio ne sont pas configures.", (x, ty), report_font(19), width=92)
+        x, ty = card(56, 820, 1128, 250, "Alertes visibles")
+        draw_wrapped(draw, "Cette partie affiche uniquement l'etat du systeme et les niveaux d'alerte instantanes.", (x, ty), report_font(19), width=92)
         for alert in alerts[:3]:
             ty += 50
-            draw_wrapped(draw, f"{alert.get('level').upper()} | capteur: {alert.get('trigger')} | zone: {alert.get('zone')} | action: {alert.get('action')}", (x, ty), report_font(17), width=100)
+            draw_wrapped(draw, f"{alert.get('level').upper()} | capteur: {alert.get('trigger')} | zone: {alert.get('zone')} | {alert.get('message')}", (x, ty), report_font(17), width=100)
     else:
         y = 190
         x, ty = card(56, y, 1128, 210, "Synthese systeme et actionneurs")
@@ -1694,7 +1839,7 @@ def make_report_pdf(payload, audience="technician"):
             draw_badge(draw, x, ty, alert.get("level", "info").upper(), alert.get("level", "info"))
             draw_wrapped(draw, f"{alert.get('trigger')} | zone {alert.get('zone')} | {alert.get('message')} | {alert.get('action')}", (x + 186, ty + 2), report_font(15), width=42)
             ty += 58
-        draw_wrapped(draw, "Canaux: Email SMTP et SMS Twilio prevus. Etat actuel: simulation sans envoi externe.", (x, ty + 8), report_font(15), width=56)
+        draw_wrapped(draw, "Les alertes restent locales dans l'application et dans le rapport.", (x, ty + 8), report_font(15), width=56)
 
         x, ty = card(56, 790, 1128, 300, "Diagnostic IA et image")
         image_box = (x, ty, x + 250, ty + 200)
@@ -1793,11 +1938,29 @@ def analyze():
     lat = float(request.form.get("lat", 33.5731))
     lng = float(request.form.get("lng", -7.5898))
     try:
-        img = Image.open(io.BytesIO(file.read())).convert("RGB")
+        raw = file.read()
+        RECEIVED_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+        original_name = secure_filename(file.filename or "manual_analysis.jpg")
+        stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        saved_name = f"{stamp}_{original_name}"
+        save_path = RECEIVED_IMAGES_DIR / saved_name
+        save_path.write_bytes(raw)
+        mark_received_image_processed(save_path)
+        img = Image.open(io.BytesIO(raw)).convert("RGB")
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
-    return jsonify(analyze_image_object(img, zone_id, lat, lng))
+    return jsonify(
+        analyze_image_object(
+            img,
+            zone_id,
+            lat,
+            lng,
+            source="manual_upload",
+            image_url=f"/received_images/{saved_name}",
+            filename=saved_name,
+        )
+    )
 
 
 @app.route("/upload", methods=["POST"])

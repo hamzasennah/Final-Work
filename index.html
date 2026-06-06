@@ -823,6 +823,60 @@
     }
     body.dark .farmer-action { background:#17231b; }
     .farmer-action b { display:block; font-size: 18px; margin-bottom: 8px; }
+    .mini-deployment {
+      position:relative;
+      height:120px;
+      margin-top:10px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:linear-gradient(180deg,#eef7f1 0 52%,#72ad61 53% 100%);
+      overflow:hidden;
+    }
+    .mini-deployment::before {
+      content:"";
+      position:absolute;
+      left:14%;
+      right:14%;
+      bottom:28px;
+      height:10px;
+      background:#26312d;
+      border-radius:999px;
+    }
+    .mini-arm {
+      position:absolute;
+      top:28px;
+      width:34%;
+      height:18px;
+      background:linear-gradient(180deg,#d7dde0,#8c969b);
+      border:2px solid #3d484c;
+      transition:transform 700ms ease;
+    }
+    .mini-arm.left { left:15%; transform-origin:left center; transform:rotate(70deg); }
+    .mini-arm.right { right:15%; transform-origin:right center; transform:rotate(-70deg); }
+    .mini-deployment.chaleur .mini-arm.left,
+    .mini-deployment.chaleur .mini-arm.right { transform:rotate(0deg); }
+    .mini-deployment.pluie .mini-arm.left { transform:rotate(24deg); }
+    .mini-deployment.pluie .mini-arm.right { transform:rotate(-24deg); }
+    .mini-canal {
+      position:absolute;
+      left:47%;
+      top:50px;
+      width:6%;
+      height:52px;
+      background:#454c52;
+      border-radius:4px;
+    }
+    .mini-water {
+      position:absolute;
+      left:50%;
+      top:80px;
+      width:32%;
+      height:6px;
+      border-radius:999px;
+      background:#2f80ed;
+      opacity:0;
+    }
+    .mini-deployment.pluie .mini-water { opacity:1; }
     .alert-list { display:grid; gap: 12px; }
     .alert-columns {
       display:grid;
@@ -1023,19 +1077,25 @@
       <section class="panel view-item farmer-only" data-view="dashboard" style="margin-top:22px">
         <div class="panel-head">
           <div>
-            <h3>Actions prioritaires pour le fermier</h3>
-            <p>Vue simple: action immédiate, zone concernée et raison principale.</p>
+            <h3>État actuel pour le fermier</h3>
+            <p>Vue simple: météo locale, état des plaques et maladie détectée.</p>
           </div>
         </div>
         <div class="panel-body">
           <div class="farmer-action-grid">
             <div class="farmer-action">
-              <b id="farmerMainAction">Surveillance</b>
-              <p id="farmerMainReason">Le système attend les capteurs.</p>
+              <b id="farmerMainAction">État des plaques</b>
+              <p id="farmerMainReason">Le système attend la météo Bouskoura ou les capteurs Raspberry.</p>
+              <div class="mini-deployment" id="farmerPlateVisual">
+                <span class="mini-arm left"></span>
+                <span class="mini-arm right"></span>
+                <span class="mini-canal"></span>
+                <span class="mini-water"></span>
+              </div>
             </div>
             <div class="farmer-action">
-              <b id="farmerWaterAction">Irrigation</b>
-              <p id="farmerWaterReason">Aucune recommandation pour le moment.</p>
+              <b id="farmerWeatherAction">Météo Bouskoura</b>
+              <p id="farmerWeatherReason">Température, humidité et pluie en attente.</p>
             </div>
             <div class="farmer-action">
               <b id="farmerDiseaseAction">Maladies</b>
@@ -1055,10 +1115,10 @@
         <div class="panel-body">
           <div class="decision-grid">
             <div class="decision-card">
-              <h4>Indice de stress hydrique</h4>
-              <div class="decision-value" id="swiMain">--/100</div>
-              <p id="swiText">En attente capteurs.</p>
-              <div class="zone-health" id="zoneHealth"></div>
+              <h4>Météo réelle Bouskoura</h4>
+              <div class="decision-value" id="weatherMain">--°C</div>
+              <p id="weatherText">En attente météo réelle.</p>
+              <div class="mini-code" id="weatherCode">Source: --</div>
             </div>
             <div class="decision-card tech-only">
               <h4>GDD - degrés-jours</h4>
@@ -1087,7 +1147,7 @@
           <div class="panel-head">
             <div>
               <h3>Carte de santé zonale</h3>
-              <p>Chaque zone combine stress hydrique, maladie active et action recommandée.</p>
+              <p>Chaque zone affiche son état actuel selon maladie active, météo et capteurs.</p>
             </div>
           </div>
           <div class="panel-body">
@@ -1410,7 +1470,7 @@
               </div>
               <div class="report-choice">
                 <b>Rapport technicien</b>
-                <p>Capteurs, seuils, mécanisme, SWI, GDD, NDVI proxy, notification SMTP/Twilio et historique IA.</p>
+                <p>Capteurs, météo réelle Bouskoura, seuils, mécanisme, GDD, NDVI proxy et historique IA.</p>
               </div>
             </div>
           </div>
@@ -1532,8 +1592,7 @@
         trigger: "system_health",
         zone: "systeme",
         message: "Aucune alerte critique",
-        action: "Le système poursuit la surveillance.",
-        delivery: { email: { status: "simulation" }, sms: { status: "simulation" } }
+        action: "Le système poursuit la surveillance."
       }];
       const levels = [
         { key: "info", title: "Info", label: "vert" },
@@ -1547,9 +1606,8 @@
             <b>${item.zone || "systeme"} - ${item.message || "Surveillance"}</b>
             <p>${item.action || "Aucune action immédiate."}</p>
             <small>Capteur déclencheur: ${item.trigger || "--"}</small>
-            <small>Email: ${item.delivery?.email?.status || "simulation"} | SMS: ${item.delivery?.sms?.status || "simulation"}</small>
-          </div>
-        `).join("") : `<div class="alert-item"><b>Aucune alerte</b><p>Niveau ${level.label} non déclenché.</p><small>Canaux email/SMS prêts pour configuration.</small></div>`;
+        </div>
+      `).join("") : `<div class="alert-item"><b>Aucune alerte</b><p>Niveau ${level.label} non déclenché.</p><small>Surveillance locale active.</small></div>`;
         return `<section class="alert-column ${level.key}">
           <h4>${level.title}<span class="alert-count">${items.length}</span></h4>
           ${rendered}
@@ -1559,18 +1617,11 @@
 
     function updateDecisionCards(data) {
       const analytics = data.analytics || {};
-      const zones = analytics.swi?.zones || {};
+      const zones = analytics.zones || {};
       const entries = Object.entries(zones);
-      const worst = entries.sort((a, b) => b[1].score - a[1].score)[0];
-      if (worst) {
-        document.getElementById("swiMain").textContent = `${worst[1].score}/100`;
-        document.getElementById("swiText").textContent = `Zone ${worst[0]} - ${worst[1].recommendation}`;
-      }
-      document.getElementById("zoneHealth").innerHTML = Object.entries(zones).map(([zone, info]) => `
-        <div class="zone-chip ${alertClass(info.level)}">
-          <b>Zone ${zone}</b><span>${info.score}/100 - ${info.level}</span>
-        </div>
-      `).join("");
+      document.getElementById("weatherMain").textContent = data.temperature !== undefined ? `${data.temperature}°C` : "--°C";
+      document.getElementById("weatherText").textContent = `${data.location || "Bouskoura"}: humidité ${data.humidity ?? "--"}%, pluie ${data.precipitation ?? "--"} mm/h.`;
+      document.getElementById("weatherCode").textContent = `Source: ${data.source || data.mode || "--"}`;
       Object.entries(zones).forEach(([zone, info]) => {
         const rect = document.getElementById(`zoneMap${zone}`);
         if (rect) rect.setAttribute("fill", info.level === "critique" ? "#d74d45" : (info.level === "attention" ? "#f9a825" : (zone === "A" ? "#5ba95b" : zone === "B" ? "#7dbb6b" : "#9ccc7a")));
@@ -1593,31 +1644,32 @@
 
       const alerts = data.alerts_center || [];
       document.getElementById("alertList").innerHTML = renderAlertColumns(alerts);
-      updateFarmerSummary(data, worst);
+      updateFarmerSummary(data);
     }
 
     function updateZoneDetail(zone) {
       const analytics = lastSensorPayload?.analytics || {};
-      const info = analytics.swi?.zones?.[zone];
+      const info = analytics.zones?.[zone];
       const disease = lastSensorPayload?.disease_context;
-      const action = info?.score >= 65 ? "Irriguer cette zone" : (disease ? "Surveiller maladie et capteurs" : "Surveillance normale");
       document.getElementById("zoneDetail").innerHTML = `
         <h4>Zone ${zone}</h4>
-        <p><strong>Stress hydrique:</strong> ${info ? `${info.score}/100 - ${info.level}` : "non disponible"}</p>
+        <p><strong>État:</strong> ${info ? `${info.status} - ${info.level}` : "non disponible"}</p>
         <p><strong>Capteurs:</strong> T ${lastSensorPayload?.temperature ?? "--"}°C, H ${lastSensorPayload?.humidity ?? "--"}%, pluie ${lastSensorPayload?.precipitation ?? "--"} mm/h, sol ${lastSensorPayload?.soil_moisture ?? "--"}%</p>
-        <p><strong>Action irrigation:</strong> ${info?.recommendation || "Surveillance"}</p>
+        <p><strong>Source météo:</strong> ${lastSensorPayload?.source || lastSensorPayload?.mode || "--"}</p>
         <p><strong>Contexte maladie:</strong> ${disease ? `${disease.disease}, risque ${Math.round(disease.combined_risk * 100)}%` : "aucune maladie active"}</p>
-        <p><strong>Action proposée:</strong> ${action}</p>
+        <p><strong>Détail:</strong> ${info?.reason || "Surveillance normale"}</p>
       `;
     }
 
-    function updateFarmerSummary(data, worst) {
+    function updateFarmerSummary(data) {
       const mode = data.mechanism?.mode || "repos";
-      const main = mode === "pluie" ? "Protéger de la pluie" : (mode === "chaleur" ? "Couvrir contre chaleur" : "Surveiller");
+      const main = mode === "pluie" ? "Plaques inclinées" : (mode === "chaleur" ? "Plaques horizontales" : "Plaques au repos");
       document.getElementById("farmerMainAction").textContent = main;
-      document.getElementById("farmerMainReason").textContent = data.actuator_command?.reason || data.mechanism?.description || "Aucune action mécanique.";
-      document.getElementById("farmerWaterAction").textContent = worst ? `Irrigation zone ${worst[0]}` : "Irrigation";
-      document.getElementById("farmerWaterReason").textContent = worst ? `${worst[1].score}/100 - ${worst[1].recommendation}` : "Aucune recommandation.";
+      document.getElementById("farmerMainReason").textContent = data.mechanism?.description || "Aucune action mécanique.";
+      const visual = document.getElementById("farmerPlateVisual");
+      if (visual) visual.className = `mini-deployment ${mode}`;
+      document.getElementById("farmerWeatherAction").textContent = `${data.temperature ?? "--"}°C à ${data.location || "Bouskoura"}`;
+      document.getElementById("farmerWeatherReason").textContent = `Humidité ${data.humidity ?? "--"}%, pluie ${data.precipitation ?? "--"} mm/h. Source: ${data.source || data.mode || "--"}.`;
       const disease = data.disease_context;
       document.getElementById("farmerDiseaseAction").textContent = disease ? `Maladie zone ${disease.zone}` : "Maladies";
       document.getElementById("farmerDiseaseReason").textContent = disease ? `${disease.disease}: risque ${Math.round(disease.combined_risk * 100)}%, suivre les zones proposées.` : "Aucune maladie active validée.";
@@ -1956,7 +2008,7 @@
         }).join("");
         document.getElementById("historyLines").innerHTML = lines;
         document.getElementById("historyLabels").innerHTML = `
-          <text x="50" y="24" fill="#56645c" font-size="13">Derniers ${history.length} points capteurs</text>
+          <text x="50" y="24" fill="#56645c" font-size="13">Derniers ${history.length} points réels - ${data.source || "capteurs"}</text>
           <text x="50" y="242" fill="#56645c" font-size="12">Mise à jour: ${new Date().toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</text>
         `;
       } catch {
@@ -1976,10 +2028,9 @@
         document.getElementById("reportBox").innerHTML = `
           <h4>Rapport fermier - ${data.project}</h4>
           <p><strong>Généré le:</strong> ${new Date(data.generated_at).toLocaleString("fr-FR")}</p>
-          <p><strong>Action plaques:</strong> ${mechanism.mode || "--"} - ${mechanism.description || "Surveillance"}</p>
-          <p><strong>Culture:</strong> ${summary.crop || "--"} | <strong>Température:</strong> ${sensors.temperature ?? "--"}°C | <strong>Pluie:</strong> ${sensors.precipitation ?? "--"} mm/h</p>
+          <p><strong>État plaques:</strong> ${mechanism.mode || "--"} - ${mechanism.description || "Surveillance"}</p>
+          <p><strong>Météo:</strong> ${summary.location || "Bouskoura"} | température ${sensors.temperature ?? "--"}°C | pluie ${sensors.precipitation ?? "--"} mm/h | humidité ${sensors.humidity ?? "--"}%</p>
           <p><strong>Dernière maladie:</strong> ${last.disease || "Aucune maladie validée"} ${last.zone?.timestamp ? `- image prise/analysee le ${new Date(last.zone.timestamp).toLocaleString("fr-FR")}` : ""}</p>
-          <p><strong>Conseil simple:</strong> ${(summary.alerts || [])[0]?.action || "Continuer la surveillance et vérifier les feuilles."}</p>
           <div style="margin-top:12px">${renderAlertColumns(summary.alerts || [])}</div>
         `;
         return;
@@ -1988,7 +2039,7 @@
         <h4>Rapport technicien - ${data.project}</h4>
         <p><strong>Généré le:</strong> ${new Date(data.generated_at).toLocaleString("fr-FR")}</p>
         <p><strong>Culture:</strong> ${summary.crop || "--"} | <strong>Mécanisme:</strong> ${mechanism.mode || "--"} (${mechanism.plate_angle || 0}° plaques, servo ${mechanism.servo_angle || 0}°)</p>
-        <p><strong>Capteurs:</strong> T ${sensors.temperature ?? "--"}°C, HR ${sensors.humidity ?? "--"}%, pluie ${sensors.precipitation ?? "--"} mm/h, lumière ${sensors.luminosity ?? "--"} lx, sol ${sensors.soil_moisture ?? "--"}%, réservoir ${sensors.reservoir_level ?? "--"}%</p>
+        <p><strong>Capteurs / météo:</strong> T ${sensors.temperature ?? "--"}°C, HR ${sensors.humidity ?? "--"}%, pluie ${sensors.precipitation ?? "--"} mm/h, lumière ${sensors.luminosity ?? "--"} lx, réservoir ${sensors.reservoir_level ?? "--"}% | source ${summary.weather_source || "--"}</p>
         <p><strong>GDD:</strong> ${analytics.gdd?.cumulative || "--"} °C·j - ${analytics.gdd?.stage || "--"} | <strong>NDVI proxy:</strong> ${analytics.ndvi?.value ?? "--"} - ${analytics.ndvi?.trend || "--"}</p>
         <p><strong>Risque maladie 7j:</strong> ${analytics.forecast?.peak_risk || "--"}% - ${analytics.forecast?.action || "--"}</p>
         <p><strong>Dernière IA:</strong> ${last.predicted_class || "--"} | confiance ${Math.round((last.confidence || 0) * 100)}% | zone ${last.zone?.zone_id || last.zone_id || "--"}</p>
@@ -2019,15 +2070,16 @@
       const analytics = data.analytics || {};
       let answer = "Le système combine capteurs, diagnostic IA et hystérésis avant d'agir.";
       if (question.includes("90") || question.includes("chaleur")) {
-        answer = `Les plaques passent à 90° si température ou luminosité dépassent les seuils de la culture. Mode actuel: ${data.mechanism?.mode || "--"}, température ${data.temperature || "--"}°C.`;
+        answer = `Mode actuel: ${data.mechanism?.mode || "--"}. Température Bouskoura/Raspberry: ${data.temperature ?? "--"}°C. Les plaques deviennent horizontales quand le seuil chaleur de la culture est dépassé.`;
       } else if (question.includes("pluie") || question.includes("réservoir") || question.includes("canal")) {
-        answer = `En pluie, les plaques s'inclinent pour canaliser l'eau vers le réservoir. Précipitation actuelle: ${data.precipitation || "--"} mm/h.`;
+        answer = `Précipitation actuelle: ${data.precipitation ?? "--"} mm/h. En mode pluie, les plaques s'inclinent vers le canal central et l'eau est guidée au réservoir.`;
       } else if (question.includes("maladie") || question.includes("risque")) {
-        answer = `Le pic de risque à 7 jours est ${analytics.forecast?.peak_risk || "--"}%. Action: ${analytics.forecast?.action || "surveillance"}.`;
-      } else if (question.includes("irrigation") || question.includes("stress")) {
-        const zones = analytics.swi?.zones || {};
-        const top = Object.entries(zones).sort((a, b) => b[1].score - a[1].score)[0];
-        answer = top ? `La zone ${top[0]} a le stress hydrique le plus élevé: ${top[1].score}/100. ${top[1].recommendation}.` : answer;
+        answer = `Le pic de risque à 7 jours est ${analytics.forecast?.peak_risk || "--"}%. Dernier contexte maladie: ${data.disease_context?.disease || "aucune maladie active"}.`;
+      } else if (question.includes("bouskoura") || question.includes("météo") || question.includes("meteo")) {
+        answer = `Source actuelle: ${data.source || data.mode || "--"}. Météo affichée: ${data.temperature ?? "--"}°C, humidité ${data.humidity ?? "--"}%, pluie ${data.precipitation ?? "--"} mm/h.`;
+      } else if (question.includes("zone")) {
+        const zones = analytics.zones || {};
+        answer = Object.entries(zones).map(([zone, info]) => `Zone ${zone}: ${info.status}`).join(" | ") || answer;
       }
       document.getElementById("assistantAnswer").innerHTML = `<h4>Réponse</h4><p>${answer}</p>`;
     }
