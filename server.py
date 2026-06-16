@@ -271,20 +271,22 @@ DISEASE_POLICIES = {
     "late blight": {
         "risk": 0.95,
         "spread": "tres elevee",
-        "action": "Traiter A, B et C; isoler les plants tres atteints et limiter la mouillure foliaire.",
+        "action": "Surveillance globale A, B et C; isoler les plants tres atteints et limiter la mouillure foliaire.",
         "scope": "all",
         "weather": "cool_wet",
         "mechanical_bias": "pluie",
-        "source": "Late blight is strongly favored by cool, wet and humid weather.",
+        "prototype_rule": "Toute la serre: spores facilement aeriennes en conditions fraiches et humides.",
+        "source": "Late blight is favored by cool, wet weather; sporangia can become airborne and spread quickly.",
     },
     "bacterial spot": {
         "risk": 0.86,
         "spread": "elevee",
-        "action": "Traiter la zone detectee et les zones voisines; reduire les eclaboussures et l'humidite foliaire.",
+        "action": "Zone detectee + bordures adjacentes; reduire eclaboussures et humidite foliaire.",
         "scope": "adjacent_high_all",
         "weather": "warm_wet_splash",
         "mechanical_bias": "pluie",
-        "source": "Bacterial spot is favored by warm wet weather and rain splash dispersal.",
+        "prototype_rule": "Bordures voisines: dispersion locale par pluie, irrigation, aerosols et manipulation de plantes mouillees.",
+        "source": "Bacterial spot is favored by warm wet weather; bacteria move by wind-driven rain, irrigation droplets, aerosols and handling wet plants.",
     },
     "yellowleaf": {
         "risk": 0.82,
@@ -293,7 +295,8 @@ DISEASE_POLICIES = {
         "scope": "all",
         "weather": "warm_vector",
         "mechanical_bias": "chaleur",
-        "source": "Tomato yellow leaf curl virus is vectored by whiteflies, with pressure increasing in warm crops.",
+        "prototype_rule": "Toute la serre: le vecteur aleurode est mobile, donc la limite A/B/C ne suffit pas.",
+        "source": "Tomato yellow leaf curl virus is transmitted by adult whiteflies that can retain and spread the virus for weeks.",
     },
     "yellow leaf": {
         "risk": 0.82,
@@ -302,52 +305,59 @@ DISEASE_POLICIES = {
         "scope": "all",
         "weather": "warm_vector",
         "mechanical_bias": "chaleur",
-        "source": "Tomato yellow leaf curl virus is vectored by whiteflies, with pressure increasing in warm crops.",
+        "prototype_rule": "Toute la serre: le vecteur aleurode est mobile, donc la limite A/B/C ne suffit pas.",
+        "source": "Tomato yellow leaf curl virus is transmitted by adult whiteflies that can retain and spread the virus for weeks.",
     },
     "mosaic virus": {
         "risk": 0.78,
-        "spread": "elevee",
+        "spread": "elevee par contact",
         "action": "Isoler la zone detectee, desinfecter les manipulations et inspecter toute la culture.",
-        "scope": "all_if_confident",
+        "scope": "local",
+        "monitor_scope": "all",
         "weather": "contact_vector",
         "mechanical_bias": "repos",
+        "prototype_rule": "Action directe sur la zone detectee; inspection globale A/B/C car la transmission est surtout mecanique/contact.",
         "source": "Mosaic viruses spread mainly by contact or vectors; climate is treated as a secondary stress factor.",
     },
     "septoria": {
         "risk": 0.76,
         "spread": "moyenne a elevee",
-        "action": "Traiter la zone et les demi-zones adjacentes; reduire la mouillure foliaire.",
+        "action": "Zone detectee + bordure adjacente; reduire la mouillure foliaire.",
         "scope": "adjacent",
         "weather": "wet_splash",
         "mechanical_bias": "pluie",
-        "source": "Septoria leaf spot spreads by rain splash and is favored by prolonged leaf wetness.",
+        "prototype_rule": "Bordures voisines: projection locale par eclaboussures de pluie et mouillure prolongee.",
+        "source": "Septoria leaf spot spreads mainly by rain splash and is favored by prolonged leaf wetness.",
     },
     "leaf mold": {
         "risk": 0.74,
         "spread": "moyenne a elevee",
-        "action": "Traiter la zone et les demi-zones adjacentes; ameliorer l'aeration et baisser l'humidite.",
-        "scope": "adjacent",
+        "action": "Surveillance globale si humidite elevee; ameliorer aeration et baisser humidite.",
+        "scope": "all_if_confident",
         "weather": "humid",
         "mechanical_bias": "pluie",
-        "source": "Tomato leaf mold is favored by high relative humidity.",
+        "prototype_rule": "Serre complete si humidite elevee: pression liee au microclimat humide de l'abri.",
+        "source": "Tomato leaf mold is favored by high relative humidity in protected crops.",
     },
     "target spot": {
         "risk": 0.73,
         "spread": "moyenne a elevee",
-        "action": "Traiter la zone detectee et la demi-zone voisine la plus exposee.",
+        "action": "Zone detectee + bordure voisine la plus exposee.",
         "scope": "adjacent",
         "weather": "warm_wet_splash",
         "mechanical_bias": "pluie",
+        "prototype_rule": "Bordure voisine: tache foliaire favorisee par feuillage humide et projection locale.",
         "source": "Foliar spot diseases intensify when foliage remains wet and splash dispersal occurs.",
     },
     "early blight": {
         "risk": 0.70,
         "spread": "moyenne",
-        "action": "Traiter la zone detectee; ajouter les demi-zones voisines si confiance forte ou climat humide.",
+        "action": "Zone detectee; ajouter bordures voisines si confiance forte ou climat humide.",
         "scope": "confidence_adjacent",
         "weather": "warm_wet_splash",
         "mechanical_bias": "pluie",
-        "source": "Early blight is favored by warm, wet weather and extended leaf wetness.",
+        "prototype_rule": "Local puis bordures: spores liees au sol/debris, pluie, vent, contact humain ou equipement.",
+        "source": "Early blight is favored by warm wet weather; spores spread by wind, human contact or equipment.",
     },
     "spider mites": {
         "risk": 0.64,
@@ -356,7 +366,8 @@ DISEASE_POLICIES = {
         "scope": "confidence_adjacent",
         "weather": "hot_dry",
         "mechanical_bias": "chaleur",
-        "source": "Spider mite pressure typically rises under hot and dry stress.",
+        "prototype_rule": "Local puis zones voisines: colonies favorisees par temps chaud et sec, inspection rapprochee.",
+        "source": "Twospotted spider mite infestations are particularly common during hot, dry weather.",
     },
 }
 
@@ -378,7 +389,7 @@ CLIMATE_IMPACT_BY_CLASS = {
     "Potato___Early_blight": {
         "label": "Pomme de terre - alternariose",
         "heat": {"level": "modere", "bonus": 0.08, "trigger": "warm", "action": "Surveiller si chaleur accompagnee d'humidite foliaire."},
-        "rain": {"level": "modere a eleve", "bonus": 0.16, "trigger": "wet", "action": "Incliner si pluie/humidite elevee; traiter la zone et demi-zones voisines si risque monte."},
+        "rain": {"level": "modere a eleve", "bonus": 0.16, "trigger": "wet", "action": "Incliner si pluie/humidite elevee; traiter la zone et les bordures voisines si risque monte."},
         "mechanical": {"heat": "chaleur", "rain": "pluie"},
         "rationale": "L'alternariose est favorisee par chaleur moderee a elevee, humidite et mouillure foliaire.",
     },
@@ -406,7 +417,7 @@ CLIMATE_IMPACT_BY_CLASS = {
     "Tomato_Early_blight": {
         "label": "Tomate - alternariose",
         "heat": {"level": "modere", "bonus": 0.08, "trigger": "warm", "action": "Surveiller chaleur + humidite; reduire stress."},
-        "rain": {"level": "modere a eleve", "bonus": 0.16, "trigger": "wet", "action": "Incliner en pluie/humidite; etendre surveillance aux demi-zones voisines."},
+        "rain": {"level": "modere a eleve", "bonus": 0.16, "trigger": "wet", "action": "Incliner en pluie/humidite; etendre surveillance aux bordures voisines."},
         "mechanical": {"heat": "chaleur", "rain": "pluie"},
         "rationale": "L'alternariose de la tomate augmente avec chaleur, humidite et mouillure foliaire.",
     },
@@ -427,7 +438,7 @@ CLIMATE_IMPACT_BY_CLASS = {
     "Tomato_Septoria_leaf_spot": {
         "label": "Tomate - septoriose",
         "heat": {"level": "faible a modere", "bonus": 0.05, "trigger": "stress", "action": "La chaleur seule n'est pas prioritaire; surveiller si humidite simultanee."},
-        "rain": {"level": "eleve", "bonus": 0.24, "trigger": "wet", "action": "Incliner vers le canal; limiter eclaboussures; traiter zone + demi-zone voisine."},
+        "rain": {"level": "eleve", "bonus": 0.24, "trigger": "wet", "action": "Incliner vers le canal; limiter eclaboussures; traiter zone + bordure voisine."},
         "mechanical": {"heat": "repos", "rain": "pluie"},
         "rationale": "La septoriose se propage par eclaboussures et mouillure prolongee des feuilles.",
     },
@@ -441,7 +452,7 @@ CLIMATE_IMPACT_BY_CLASS = {
     "Tomato__Target_Spot": {
         "label": "Tomate - target spot",
         "heat": {"level": "modere", "bonus": 0.08, "trigger": "warm", "action": "Surveiller si chaleur accompagnee d'humidite."},
-        "rain": {"level": "eleve", "bonus": 0.20, "trigger": "wet", "action": "Incliner en pluie; traiter zone et demi-zone voisine."},
+        "rain": {"level": "eleve", "bonus": 0.20, "trigger": "wet", "action": "Incliner en pluie; traiter zone et bordure voisine."},
         "mechanical": {"heat": "chaleur", "rain": "pluie"},
         "rationale": "Les taches foliaires sont aggravees par humidite, pluie et mouillure des feuilles.",
     },
@@ -1319,11 +1330,11 @@ def treatment_segments(zone, confidence, policy):
     if scope in {"adjacent", "adjacent_high_all"}:
         for adj in adjacent:
             side = "gauche" if adj > zone else "droite"
-            segments.append({"zone": adj, "portion": "half", "label": f"moitié {side} de la zone {adj}"})
+            segments.append({"zone": adj, "portion": "border", "label": f"bordure {side} de la zone {adj}"})
     elif scope == "confidence_adjacent" and confidence >= 0.80:
         for adj in adjacent:
             side = "gauche" if adj > zone else "droite"
-            segments.append({"zone": adj, "portion": "half", "label": f"moitié {side} de la zone {adj}"})
+            segments.append({"zone": adj, "portion": "border", "label": f"bordure {side} de la zone {adj}"})
     return segments
 
 
@@ -1338,14 +1349,25 @@ def get_treatment_zones(zone_id, confidence, is_healthy, disease=""):
             "recommendation": "Aucun traitement immédiat; continuer la surveillance.",
             "segments": [],
             "treatment_summary": "Surveillance uniquement.",
+            "monitoring_zones": [],
+            "monitoring_summary": "Surveillance normale.",
         }
     zone = zone_id.upper() if zone_id.upper() in ZONES else "A"
     policy = disease_policy(disease)
     segments = treatment_segments(zone, confidence, policy)
     zones_to_treat = sorted({segment["zone"] for segment in segments})
+    if policy.get("monitor_scope") == "all" or policy["scope"] == "all":
+        monitoring_zones = ["A", "B", "C"]
+    else:
+        monitoring_zones = zones_to_treat
     actuators = sorted({ZONES[z]["actuator"] for z in zones_to_treat if z in ZONES})
     propagation = round(min(0.98, policy["risk"] * (0.75 + 0.25 * confidence)), 2)
     summary = " + ".join(segment["label"] for segment in segments)
+    monitoring_summary = (
+        "Inspection globale A/B/C."
+        if monitoring_zones == ["A", "B", "C"] and zones_to_treat != ["A", "B", "C"]
+        else "Surveillance des zones concernees par l'action."
+    )
     return {
         "zones": zones_to_treat,
         "actuators": actuators,
@@ -1355,6 +1377,11 @@ def get_treatment_zones(zone_id, confidence, is_healthy, disease=""):
         "recommendation": policy["action"],
         "segments": segments,
         "treatment_summary": summary,
+        "monitoring_zones": monitoring_zones,
+        "monitoring_summary": monitoring_summary,
+        "spread_mechanism": policy.get("weather", ""),
+        "prototype_rule": policy.get("prototype_rule", ""),
+        "policy_source": policy.get("source", ""),
     }
 
 
@@ -1383,6 +1410,8 @@ def analyze_image_object(img, zone_id="A", lat=33.5731, lng=-7.5898, source="man
         ]
         treatment["policy_source"] = policy.get("source", "")
         if boosted >= 0.84 and treatment["zones"] != ["A", "B", "C"]:
+            treatment["monitoring_zones"] = ["A", "B", "C"]
+            treatment["monitoring_summary"] = "Surveillance globale A/B/C car les conditions actuelles aggravent le risque."
             treatment["recommendation"] += " Conditions actuelles favorables: etendre la surveillance a toute la culture."
     det = {
         "zone_id": zone_id.upper(),

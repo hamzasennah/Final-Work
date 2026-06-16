@@ -8,6 +8,7 @@ venv/
 PlantVillage/
 data/raw/
 data/balanced/
+data/splits_strict/*.jsonl
 models/*.pth
 models/*.pt
 models/*.png

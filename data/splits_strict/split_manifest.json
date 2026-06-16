@@ -1,0 +1,139 @@
+{
+  "seed": 42,
+  "ratios": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "raw_dir": "data/raw/PlantVillage",
+  "policy": "Split source images first. Offline augmentation is allowed only for train. Validation and test are never used for augmentation, tuning by hand, or training.",
+  "class_to_idx": {
+    "Pepper__bell___Bacterial_spot": 0,
+    "Pepper__bell___healthy": 1,
+    "Potato___Early_blight": 2,
+    "Potato___Late_blight": 3,
+    "Potato___healthy": 4,
+    "Tomato_Bacterial_spot": 5,
+    "Tomato_Early_blight": 6,
+    "Tomato_Late_blight": 7,
+    "Tomato_Leaf_Mold": 8,
+    "Tomato_Septoria_leaf_spot": 9,
+    "Tomato_Spider_mites_Two_spotted_spider_mite": 10,
+    "Tomato__Target_Spot": 11,
+    "Tomato__Tomato_YellowLeaf__Curl_Virus": 12,
+    "Tomato__Tomato_mosaic_virus": 13,
+    "Tomato_healthy": 14
+  },
+  "summary": [
+    {
+      "class_name": "Pepper__bell___Bacterial_spot",
+      "raw": 997,
+      "train_originals": 697,
+      "val_originals": 150,
+      "test_originals": 150
+    },
+    {
+      "class_name": "Pepper__bell___healthy",
+      "raw": 1478,
+      "train_originals": 1034,
+      "val_originals": 222,
+      "test_originals": 222
+    },
+    {
+      "class_name": "Potato___Early_blight",
+      "raw": 1000,
+      "train_originals": 700,
+      "val_originals": 150,
+      "test_originals": 150
+    },
+    {
+      "class_name": "Potato___Late_blight",
+      "raw": 1000,
+      "train_originals": 700,
+      "val_originals": 150,
+      "test_originals": 150
+    },
+    {
+      "class_name": "Potato___healthy",
+      "raw": 152,
+      "train_originals": 106,
+      "val_originals": 23,
+      "test_originals": 23
+    },
+    {
+      "class_name": "Tomato_Bacterial_spot",
+      "raw": 2127,
+      "train_originals": 1489,
+      "val_originals": 319,
+      "test_originals": 319
+    },
+    {
+      "class_name": "Tomato_Early_blight",
+      "raw": 1000,
+      "train_originals": 700,
+      "val_originals": 150,
+      "test_originals": 150
+    },
+    {
+      "class_name": "Tomato_Late_blight",
+      "raw": 1909,
+      "train_originals": 1337,
+      "val_originals": 286,
+      "test_originals": 286
+    },
+    {
+      "class_name": "Tomato_Leaf_Mold",
+      "raw": 952,
+      "train_originals": 666,
+      "val_originals": 143,
+      "test_originals": 143
+    },
+    {
+      "class_name": "Tomato_Septoria_leaf_spot",
+      "raw": 1771,
+      "train_originals": 1239,
+      "val_originals": 266,
+      "test_originals": 266
+    },
+    {
+      "class_name": "Tomato_Spider_mites_Two_spotted_spider_mite",
+      "raw": 1676,
+      "train_originals": 1174,
+      "val_originals": 251,
+      "test_originals": 251
+    },
+    {
+      "class_name": "Tomato__Target_Spot",
+      "raw": 1404,
+      "train_originals": 982,
+      "val_originals": 211,
+      "test_originals": 211
+    },
+    {
+      "class_name": "Tomato__Tomato_YellowLeaf__Curl_Virus",
+      "raw": 3208,
+      "train_originals": 2246,
+      "val_originals": 481,
+      "test_originals": 481
+    },
+    {
+      "class_name": "Tomato__Tomato_mosaic_virus",
+      "raw": 373,
+      "train_originals": 261,
+      "val_originals": 56,
+      "test_originals": 56
+    },
+    {
+      "class_name": "Tomato_healthy",
+      "raw": 1591,
+      "train_originals": 1113,
+      "val_originals": 239,
+      "test_originals": 239
+    }
+  ],
+  "totals": {
+    "train": 14444,
+    "val": 3097,
+    "test": 3097
+  }
+}

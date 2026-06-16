@@ -85,6 +85,42 @@ raspberry/deploy/models/efficientnet_b0_meta.json
 raspberry/deploy/manifest.json
 ```
 
+### Split strict sans fuite de données
+
+Point méthodologique important: le test set doit être isolé avant toute augmentation hors ligne. Le dépôt contient donc un protocole corrigé:
+
+```bash
+python src/pipeline/03b_split_strict_no_leakage.py
+```
+
+Ce script crée des manifestes reproductibles à partir des images brutes:
+
+```text
+data/splits_strict/train.jsonl
+data/splits_strict/val.jsonl
+data/splits_strict/test.jsonl
+data/splits_strict/split_manifest.json
+```
+
+Règle à défendre en soutenance: augmentation uniquement sur le train; validation et test restent indépendants et ne servent jamais au réglage manuel du modèle.
+
+### Benchmark EfficientNet-B0 vs ResNet-50
+
+Le choix du modèle ne se fait pas seulement sur l'accuracy. Le script suivant compare les deux architectures avec accuracy, macro precision, macro recall, macro F1, weighted F1, taille du modèle, nombre de paramètres et latence CPU:
+
+```bash
+python src/pipeline/08b_benchmark_modeles.py
+```
+
+Sorties attendues:
+
+```text
+outputs/benchmarks/model_benchmark.json
+outputs/benchmarks/model_benchmark.csv
+```
+
+Interprétation projet: EfficientNet-B0 est prioritaire pour la Raspberry Pi grâce à son compromis performance/poids; ResNet-50 reste une référence comparative hors ligne.
+
 ## Déploiement Raspberry Pi
 
 La Raspberry Pi peut envoyer les capteurs et photos directement à l’application:
@@ -195,6 +231,13 @@ Documents projet fournis:
 - `SOUTENANCE PRESENTATION.pdf`
 - `Beige Minimalistic Pros and Cons List Decision Table A4 Document.pdf`
 - `notebooks/AgroShield_VSCode_CPU.ipynb`
+- `Rohan Banerjee - Hands-on TinyML`
+- `Jason Brownlee - Imbalanced Classification with Python`
+
+Références méthodologiques IA / embarqué:
+
+- Rohan Banerjee, `Hands-on TinyML`: justification de l'inférence embarquée, de l'optimisation edge et du déploiement sur dispositifs limités.
+- Jason Brownlee, `Imbalanced Classification with Python`: justification du traitement des classes déséquilibrées, des métriques macro/F1 et de la prudence face à l'accuracy seule.
 
 Références agronomiques consultées pour relier maladies et météo:
 

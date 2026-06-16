@@ -1,0 +1,1987 @@
+﻿\documentclass[11pt,a4paper,openany]{report}
+
+% ============================================================
+% Rapport PLBD -- AgroShield
+% Version Overleaf sans integration d'images.
+% Les figures sont representees par des cadres placeholders.
+% Remplacer chaque placeholder par vos images dans Overleaf.
+% ============================================================
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{tocbibind}
+\usepackage{setspace}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+% Réduction de l'espace avant/après les chapitres
+\titlespacing*{\chapter}
+{0pt}    % indentation
+{0pt}    % espace avant le titre
+{20pt}   % espace après le titre
+\geometry{
+  left=2.35cm,
+  right=2.35cm,
+  top=2.35cm,
+  bottom=2.45cm,
+  headheight=15pt
+}
+\raggedbottom
+
+\definecolor{agrogreen}{HTML}{2E7D32}
+\definecolor{agrodark}{HTML}{143D2B}
+\definecolor{agrolight}{HTML}{EAF5EC}
+\definecolor{centralblue}{HTML}{05364A}
+\definecolor{softgray}{HTML}{F5F7F5}
+\definecolor{warning}{HTML}{F9A825}
+\definecolor{danger}{HTML}{D32F2F}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=agrogreen,
+  citecolor=agrogreen,
+  urlcolor=centralblue,
+  pdftitle={Rapport PLBD Groupe 3 - AgroShield},
+  pdfauthor={Groupe PLBD 3 - Ecole Centrale Casablanca}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small AgroShield -- Rapport PLBD Groupe 3}
+\rhead{\small Ecole Centrale Casablanca}
+\cfoot{\small \thepage}
+\renewcommand{\headrulewidth}{0.35pt}
+
+\titleformat{\chapter}
+  {\normalfont\huge\bfseries\color{agrogreen}}
+  {\thechapter.}{0.65em}{}
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{agrodark}}
+  {\thesection}{0.65em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{agrodark}}
+  {\thesubsection}{0.65em}{}
+\titlespacing*{\chapter}{0pt}{0.8cm}{0.9cm}
+\titlespacing*{\section}{0pt}{0.55cm}{0.25cm}
+\titlespacing*{\subsection}{0pt}{0.40cm}{0.20cm}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{8pt}
+\setlist[itemize]{leftmargin=1.1cm,itemsep=2pt,topsep=3pt}
+\setlist[enumerate]{leftmargin=1.1cm,itemsep=2pt,topsep=3pt}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\degC}{\ensuremath{\,^\circ\mathrm{C}}}
+
+\captionsetup{
+  labelfont={bf,color=agrodark},
+  font=small,
+  justification=centering
+}
+
+\newtcolorbox{importantbox}[1]{
+  colback=agrolight,
+  colframe=agrogreen!55,
+  title=#1,
+  fonttitle=\bfseries,
+  coltitle=agrodark,
+  arc=1.5mm,
+  boxrule=0.45pt,
+  left=7pt,
+  right=7pt,
+  top=6pt,
+  bottom=6pt
+}
+
+\newcommand{\placeholderfigure}[3]{
+  \begin{figure}[H]
+  \centering
+  \fbox{
+    \begin{minipage}[c][#2][c]{0.88\textwidth}
+      \centering
+      \vspace{0.1cm}
+      {\large\bfseries Emplacement figure}\\[0.25cm]
+      \textit{#3}\\[0.15cm]
+      {\small A inserer manuellement sur Overleaf.}
+    \end{minipage}
+  }
+  \caption{#1}
+  \end{figure}
+}
+
+\newcommand{\placeholderwide}[2]{
+  \begin{center}
+  \fbox{
+    \begin{minipage}[c][#1][c]{0.92\textwidth}
+      \centering
+      \textit{#2}
+    \end{minipage}
+  }
+  \end{center}
+}
+
+\newcommand{\placeholdercompact}[2]{
+  \begin{figure}[H]
+  \centering
+  \fbox{
+    \begin{minipage}[c][3.0cm][c]{0.88\textwidth}
+      \centering
+      {\bfseries Emplacement figure}\\[0.15cm]
+      \textit{#2}
+    \end{minipage}
+  }
+  \caption{#1}
+  \end{figure}
+}
+
+\newenvironment{frontmattertext}
+  {\begin{spacing}{1.28}\normalsize\setlength{\parskip}{10pt}}
+  {\end{spacing}}
+
+\lstdefinestyle{codeagro}{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{softgray},
+  frame=single,
+  rulecolor=\color{agrogreen!35},
+  breaklines=true,
+  columns=fullflexible,
+  showstringspaces=false,
+  keywordstyle=\color{centralblue}\bfseries,
+  commentstyle=\color{agrogreen},
+  stringstyle=\color{danger!75!black}
+}
+
+\begin{document}
+
+% ============================================================
+% Page de garde
+% ============================================================
+\begin{titlepage}
+\centering
+\vspace*{0.2cm}
+
+\begin{minipage}[c][2.0cm][c]{3.8cm}
+\centering
+\includegraphics[width=2.5cm]{CENTRALE_CASA_LOGO_OK.png}
+\end{minipage}
+
+\vspace{0.8cm}
+{\Large\bfseries Ecole Centrale Casablanca}\\[0.15cm]
+{\large Projet Learning By Doing}\\[0.9cm]
+
+{\Huge\bfseries\color{agrogreen} AgroShield}\\[0.25cm]
+{\Large Système intelligent de protection climatique, diagnostic foliaire et pilotage mécanique des cultures}\\[0.8cm]
+\vspace{0.8cm}
+
+\includegraphics[
+width=0.85\textwidth,
+height=7cm,
+keepaspectratio
+]{etage 1 centrale.jpg}
+
+\vspace{0.5cm}
+\vspace{0.5cm}
+
+\begin{minipage}{0.60\textwidth}
+\raggedright
+\large
+\textbf{Réalisé par :}\\[0.2cm]
+RHAZI Oussama\\
+KACOU Hans\\
+SOUBAI Mouad\\
+SENNAH Hamza\\
+SOUSSI Meryem
+\end{minipage}
+\hfill
+\begin{minipage}{0.35\textwidth}
+\raggedleft
+\large
+\textbf{Encadré par :}\\[0.2cm]
+Mr BELHBOUB Anouar
+\end{minipage}
+
+\vspace{0.8cm}
+
+{\large
+\textbf{Groupe :} PLBD Groupe 3\\[0.2cm]
+\textbf{Année universitaire :} 2025--2026\\[0.2cm]
+\textbf{Lieu :} Bouskoura -- Casablanca
+}
+
+\vfill
+
+{\Large\bfseries Juin 2026}
+\end{titlepage}
+\pagenumbering{roman}
+
+\tableofcontents
+\listoffigures
+\listoftables
+\clearpage
+
+
+\phantomsection
+\addcontentsline{toc}{chapter}{Remerciements}
+
+\vspace*{1cm}
+
+\begin{tcolorbox}[
+enhanced,
+colback=white,
+colframe=black,
+boxrule=0.8pt,
+arc=5mm,
+width=\textwidth,
+left=12mm,
+right=12mm,
+top=10mm,
+bottom=10mm
+]
+
+\begin{center}
+{\Huge\bfseries\underline{Remerciements}}
+\end{center}
+
+\vspace{0.6cm}
+
+Nous tenons à exprimer notre profonde gratitude à Mr BELHBOUB Anouar pour son accompagnement, ses remarques et son exigence méthodologique tout au long de ce Projet Learning By Doing.
+
+Son encadrement nous a permis de transformer une idée de protection agricole en un système intégrant mécanique, électronique, intelligence artificielle et logiciel.
+
+\vspace{0.3cm}
+
+Nous remercions également l'École Centrale Casablanca pour le cadre pédagogique du PLBD, qui nous a poussés à adopter une démarche complète d'ingénieur : comprendre un besoin réel, analyser l'existant, concevoir une solution, fabriquer un prototype, tester, corriger et documenter le travail.
+
+\vspace{0.3cm}
+
+Nos remerciements s'adressent aussi à toutes les personnes ayant contribué, par leurs conseils ou leurs retours, à l'amélioration progressive du projet.
+
+\end{tcolorbox}
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+\vspace{0.35cm}
+\begin{frontmattertext}
+Dans le cadre de l'innovation agricole africaine, avec une première réalisation expérimentale au Maroc, notre projet AgroShield consiste en l'étude, la conception et la réalisation d'un prototype intelligent destiné à protéger les cultures contre les excès climatiques tout en assurant une surveillance sanitaire précoce des plantes. L'idée principale est de répondre à deux problèmes fortement liés : d'une part les fortes chaleurs et les pluies intenses qui fragilisent les cultures, et d'autre part les maladies foliaires dont la propagation peut être accélérée par certaines conditions de température, d'humidité et de précipitation.
+
+La solution développée combine un système mécanique de plaques orientables, une Raspberry Pi connectée à des capteurs, une caméra, des modèles d'intelligence artificielle et une application web de supervision. Le prototype possède trois modes de fonctionnement : un mode repos où les plaques sont abaissées à \(0^\circ\), un mode chaleur où les plaques deviennent horizontales à \(90^\circ\) afin de couvrir la culture, et un mode pluie où elles s'inclinent vers un canal central permettant de diriger l'excès d'eau vers un réservoir. En parallèle, les images capturées par la caméra sont analysées par des modèles de classification, notamment EfficientNet-B0 et ResNet-50, afin d'identifier l'état sanitaire des feuilles parmi les classes étudiées.
+
+L'apport principal d'AgroShield réside dans l'intégration entre diagnostic foliaire et décision climatique. Lorsqu'une maladie est détectée dans une zone de culture, le système ne se limite pas à afficher le nom de la classe prédite : il évalue aussi un niveau de risque opérationnel en tenant compte des conditions réelles, de la zone observée et de la sensibilité connue de la maladie à la chaleur ou à la pluie. Cette analyse permet de déterminer si la surveillance doit rester limitée à une zone, être étendue aux zones voisines, ou déclencher automatiquement une action mécanique des plaques. Le projet aboutit ainsi à une solution cyber-physique complète, regroupant prototype mécanique, système embarqué, modèles de classification, interface web, historique de données et rapports adaptés au fermier et au technicien.
+
+\textbf{Mots-clés :} agriculture intelligente africaine, AgroShield, Raspberry Pi, vision par ordinateur, EfficientNet-B0, ResNet-50, maladies foliaires, protection climatique, servomoteurs, site pilote Bouskoura.
+\end{frontmattertext}
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\vspace{0.35cm}
+\begin{frontmattertext}
+AgroShield is an intelligent agricultural protection system designed to protect crops from climatic excesses and improve early plant disease monitoring. The system combines orientable mechanical plates, Raspberry Pi sensors, a camera, artificial intelligence models and a web-based control center. The mechanical structure has three main states: rest at \(0^\circ\), horizontal coverage at \(90^\circ\) under heat stress, and rain mode where plates tilt toward a central channel that guides excess water into a reservoir.
+
+The key contribution is the coupling between disease diagnosis and climate-aware actuation. When a leaf image is analyzed, the system estimates the disease class, confidence, propagation risk, affected zones and climatic aggravation factors. This allows AgroShield to decide whether the plates should remain at rest, cover the crop against excessive heat, or tilt to limit rain-driven disease spread. The final engineering folder includes the training notebook, extracted pipeline scripts, model metadata, Raspberry Pi code, web interface and report deliverables.
+\end{frontmattertext}
+
+\chapter*{Liste des acronymes}
+\addcontentsline{toc}{chapter}{Liste des acronymes}
+
+\renewcommand{\arraystretch}{1.25}
+
+\begin{table}[H]
+\centering
+\large
+\renewcommand{\arraystretch}{1.4}
+
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\textbf{Acronyme} & \textbf{Définition} \\
+\hline
+
+API & Interface de programmation permettant l'échange entre Raspberry Pi, serveur et interface web.\\
+\hline
+
+CNN & Réseau de neurones convolutif utilisé pour l'analyse d'images.\\
+\hline
+
+DHT22 & Capteur numérique de température et d'humidité relative utilisé dans le prototype.\\
+\hline
+
+GDD & Degrés-jours de croissance, indicateur thermique de développement d'une culture.\\
+\hline
+
+IA & Intelligence artificielle.\\
+\hline
+
+MG996R & Servomoteur à fort couple utilisé pour orienter les plaques du mécanisme.\\
+\hline
+
+OOD & Out-Of-Distribution : image hors domaine ou non représentée dans le dataset.\\
+\hline
+
+PLBD & Project Learning By Doing.\\
+\hline
+
+PWM & Modulation de largeur d'impulsion utilisée pour commander les servomoteurs.\\
+\hline
+
+RGB & Rouge, Vert, Bleu ; représentation couleur utilisée par les caméras numériques.\\
+\hline
+
+\end{tabular}
+\end{table}
+
+\clearpage
+\pagenumbering{arabic}
+
+% ============================================================
+\chapter{Introduction générale}
+% ============================================================
+L'agriculture moderne doit faire face à des conditions de production de plus en plus variables : fortes chaleurs, pluies intenses, stress climatique localisé et apparition de maladies foliaires. Dans ce contexte, un dispositif agricole ne peut plus être seulement mécanique ou seulement numérique. Il doit être capable d'observer l'état de la culture, d'interpréter les données disponibles et d'agir au bon moment.
+
+Le projet AgroShield s'inscrit dans cette logique. Il vise à concevoir un système de protection intelligent pour des cultures sensibles telles que la tomate, le poivron et la pomme de terre. Ces cultures sont exposées aux fortes chaleurs, aux pluies intenses et à différentes maladies foliaires. La solution proposée associe une structure mécanique orientable, un système embarqué à base de Raspberry Pi, des modèles de classification d'images et une interface web professionnelle.
+
+La motivation principale du projet est de fermer la boucle entre l'environnement, la maladie et l'action. Il ne suffit pas de savoir qu'il pleut : il faut savoir si cette pluie est dangereuse pour la culture et si une maladie déjà détectée peut être aggravée. Il ne suffit pas non plus de détecter une maladie : il faut relier ce diagnostic à une zone du champ, à un risque de propagation et à une réponse mécanique cohérente.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=0.5\textwidth,
+        keepaspectratio
+    ]{logo agro.png}
+
+    \caption{Logo AgroShield}
+    \label{fig:logo-agroshield}
+\end{figure}
+
+% ============================================================
+\chapter{Développement du projet}
+% ============================================================
+\section{Planification}
+Le développement d'AgroShield a été mené selon une progression par étapes, depuis la compréhension du besoin jusqu'à la réalisation du prototype, l'entraînement des modèles, l'intégration Raspberry Pi et la finalisation de l'application web. Cette organisation permet de montrer que le projet n'est pas uniquement une interface ou un montage mécanique, mais un système complet construit progressivement.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1.1\textwidth,
+        keepaspectratio
+    ]{macro planning.png}
+
+    \caption{Macro planning du projet}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.35}
+
+\begin{tabular}{|p{3.5cm}|p{2.8cm}|p{7cm}|}
+\hline
+\textbf{Phase} &
+\textbf{Période} &
+\textbf{Livrable principal} \\
+\hline
+
+Détermination de la problématique &
+Octobre &
+Identification du besoin : protection climatique et diagnostic foliaire. \\
+\hline
+
+Collecte d'information &
+Octobre--Novembre &
+Analyse des solutions existantes, contraintes agricoles et choix techniques. \\
+\hline
+
+Recherche de solutions &
+Novembre--Décembre &
+Sélection du principe des plaques orientables, du canal et du Raspberry Pi. \\
+\hline
+
+Cahier des charges &
+Décembre--Janvier &
+Exigences fonctionnelles, choix des capteurs, actionneurs et architecture des modèles de classification. \\
+\hline
+
+Test et prototypage &
+Janvier--Avril &
+Maquette mécanique, essais servomoteurs, pipeline de données et modèles de classification. \\
+\hline
+
+Réalisation du projet &
+Avril--Mai &
+Application web, intégration Raspberry Pi, rapports et automatisation. \\
+\hline
+
+Validation finale &
+Mai--Juin &
+Tests, corrections, soutenance et documentation finale. \\
+\hline
+
+\end{tabular}
+
+\caption{Synthèse de la planification du projet}
+\label{tab:planning}
+\end{table}
+
+\section{Contexte agricole}
+Les cultures maraîchères occupent une place importante dans plusieurs pays africains, notamment au Maroc, où la tomate, le poivron et la pomme de terre constituent des cultures à forte valeur agronomique et économique. Ces cultures sont sensibles aux variations de température, aux épisodes de pluie et à certaines maladies foliaires. Dans un environnement réel, ces facteurs ne sont pas isolés : une pluie intense peut favoriser l'éclaboussure et la dispersion de pathogènes ; une humidité élevée peut prolonger la mouillure foliaire ; une forte chaleur peut provoquer un stress physiologique et réduire la capacité de la plante à résister.
+
+Le projet se concentre sur un scénario de terrain : une petite parcelle ou serre expérimentale divisée en zones A, B et C, observée par capteurs et caméra. Le prototype doit réagir aux conditions instantanées, mais aussi au diagnostic foliaire produit par des modèles de classification d'images.
+
+\section{Problématique}
+La problématique générale peut être formulée ainsi :
+
+\begin{importantbox}{Problématique}
+Comment concevoir un système accessible, autonome et visuellement exploitable, capable de protéger une culture contre les excès de chaleur et de pluie tout en tenant compte du diagnostic foliaire et du risque de propagation des maladies ?
+\end{importantbox}
+
+Cette problématique est volontairement interdisciplinaire. Elle combine conception mécanique, électronique embarquée, vision par ordinateur, agronomie et interface web de supervision.
+
+\section{Objectifs du projet}
+Les objectifs principaux sont :
+\begin{itemize}
+  \item concevoir un mécanisme de plaques orientables fidèle au prototype réel ;
+  \item détecter les conditions climatiques instantanées via les capteurs terrain, avec la météo locale de Bouskoura uniquement comme source de secours en cas de panne ou d'indisponibilité d'un capteur ;
+  \item classifier des images foliaires à partir de modèles EfficientNet-B0 et ResNet-50 ;
+  \item rejeter les images qui ne représentent pas une feuille ou qui sont hors dataset ;
+  \item estimer le risque de propagation selon la maladie, la zone et le climat ;
+  \item déclencher un état mécanique adapté : repos, chaleur ou pluie ;
+  \item fournir une interface web utilisable par un fermier et un technicien ;
+  \item structurer le projet complet pour VS Code, GitHub et déploiement Raspberry Pi.
+\end{itemize}
+
+\section{Périmètre fonctionnel}
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{2.8cm}|p{5.2cm}|p{5.2cm}|}
+\hline
+\textbf{Module} &
+\textbf{Fonction attendue} &
+\textbf{Résultat visé} \\
+\hline
+
+Mécanisme &
+Orienter les plaques selon la situation. &
+Protection physique et canalisation de l'eau. \\
+\hline
+
+Capteurs &
+Mesurer température, humidité, luminosité, pluie et humidité du sol. &
+Évaluation instantanée du climat. \\
+\hline
+
+Caméra &
+Capturer automatiquement des images de feuilles, tout en laissant la possibilité d'un upload manuel depuis l'interface. &
+Diagnostic automatique depuis la caméra Raspberry, avec option de test manuel pour le fermier ou le technicien. \\
+\hline
+
+Modèles de classification &
+Classer l'image avec EfficientNet-B0 ou ResNet50 et filtrer les cas hors domaine. &
+Diagnostic foliaire crédible, traçable et exploitable. \\
+\hline
+
+Interface web &
+Superviser, visualiser et générer des rapports. &
+Centre de contrôle agricole. \\
+\hline
+
+Raspberry Pi &
+Exécuter la boucle terrain. &
+Action automatique sur les servomoteurs. \\
+\hline
+
+\end{tabular}
+
+\caption{Périmètre fonctionnel du système AgroShield}
+\label{tab:perimetre}
+\end{table}
+
+% ============================================================
+\chapter{Etat de l'art et analyse de l'existant}
+% ============================================================
+\section{Solutions de protection climatique}
+Les solutions traditionnelles de protection des cultures comprennent les serres, filets d'ombrage, tunnels plastiques, systèmes d'irrigation et dispositifs de drainage. Ces solutions sont efficaces dans certains contextes, mais elles présentent souvent une limite importante : elles sont passives ou coûteuses.
+
+Une serre complète peut protéger contre plusieurs contraintes, mais son coût et sa complexité dépassent parfois les moyens d'une petite exploitation. Un filet d'ombrage réduit l'impact du soleil, mais ne réagit pas à la pluie et peut réduire l'éclairement utile. Un système de drainage collecte l'eau, mais ne réalise pas de diagnostic sanitaire.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{3cm}|p{3.2cm}|p{3.2cm}|p{4cm}|}
+\hline
+\textbf{Solution} &
+\textbf{Avantages} &
+\textbf{Limites} &
+\textbf{Position AgroShield} \\
+\hline
+
+Serre classique &
+Protection physique efficace. &
+Coût élevé et faible modularité. &
+Prototype plus léger et orientable. \\
+\hline
+
+Filet d'ombrage &
+Solution simple et économique. &
+Action passive, sans récupération d'eau. &
+Couverture active à $90^\circ$. \\
+\hline
+
+Drainage &
+Gestion de l'excès d'eau. &
+Ne protège pas les feuilles contre la pluie. &
+Inclinaison des plaques vers le canal. \\
+\hline
+
+Diagnostic manuel &
+Expertise humaine. &
+Fréquence limitée et subjectivité. &
+Modèles de classification embarqués et historique des diagnostics. \\
+\hline
+
+\end{tabular}
+
+\caption{Comparaison de solutions agricoles existantes}
+\label{tab:solutions_existantes}
+\end{table}
+
+\section{Vision par ordinateur en agriculture}
+La vision par ordinateur est devenue une approche centrale pour le diagnostic foliaire. Les architectures CNN telles que ResNet et EfficientNet permettent d'extraire automatiquement des caractéristiques visuelles complexes : couleur, texture, contour, taches, nécroses et motifs de jaunissement. EfficientNet-B0 est particulièrement intéressant pour le déploiement embarqué car il propose un bon compromis entre précision et coût de calcul \cite{efficientnet}. ResNet-50 reste une référence robuste grâce à ses connexions résiduelles \cite{resnet}.
+
+Toutefois, un modèle de classification ne doit pas être utilisé aveuglément. S'il reçoit une image de PC, de mur ou d'objet non végétal, il produira souvent une classe parmi celles connues. C'est pourquoi AgroShield ajoute une logique de rejet hors domaine : seuil de confiance, analyse de couleur/texture végétale, cohérence de la prédiction et message explicite lorsque l'image ne correspond pas au domaine d'entraînement.
+
+\section{Influence du climat sur les maladies}
+Les maladies foliaires sont fortement influencées par les conditions environnementales. L'humidité et la pluie favorisent souvent les maladies fongiques ou bactériennes par mouillure foliaire, éclaboussures et dispersion des spores. La température peut accélérer le développement de certains pathogènes ou affaiblir la plante. Le système AgroShield tient compte de cette réalité : après diagnostic, les conditions instantanées modifient le niveau de risque et peuvent déclencher un déploiement mécanique.
+
+\begin{importantbox}{Principe retenu}
+Le climat n'est pas seulement un déclencheur mécanique. Il est aussi un facteur d'aggravation sanitaire. Une pluie intense sans maladie peut justifier l'inclinaison des plaques ; une pluie modérée associée à une maladie sensible à l'eau peut également justifier une protection.
+\end{importantbox}
+
+% ============================================================
+\chapter{Cahier des charges}
+% ============================================================
+\section{Besoins utilisateurs}
+Deux profils d'utilisateurs sont distingués :
+\begin{itemize}
+  \item \textbf{Fermier :} il a besoin d'un état simple, lisible, sans surcharge technique. Il doit comprendre la situation actuelle, la zone concernée, l'état des plaques et les alertes visibles.
+  \item \textbf{Technicien :} il a besoin des données brutes, des seuils, de l'historique, des détails des modèles, des endpoints API, des paramètres des capteurs et de la logique de décision.
+\end{itemize}
+
+\section{Exigences fonctionnelles}
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.25}
+
+\begin{tabularx}{\textwidth}{|p{3cm}|X|X|}
+\hline
+\textbf{Exigence} & \textbf{Description} & \textbf{Critère de validation} \\
+\hline
+
+Mode repos
+& Plaques abaissées à $0^\circ$.
+& Aucun déploiement lorsque les conditions sont normales. \\
+\hline
+
+Mode chaleur
+& Plaques horizontales à $90^\circ$.
+& Déclenchement si la température dépasse le seuil fixé. \\
+\hline
+
+Mode pluie
+& Plaques inclinées vers le canal central.
+& Visualisation de la pluie, du canal et du réservoir dans l’interface. \\
+\hline
+
+Diagnostic par modèles
+& Classification d’image foliaire avec EfficientNet-B0 ou ResNet50.
+& Affichage de la classe, de la confiance, de la zone, de la date et de l’heure. \\
+\hline
+
+Rejet OOD
+& Refus d’une image hors plante ou hors dataset.
+& Message clair sans diagnostic artificiel. \\
+\hline
+
+Propagation
+& Zones A/B/C adaptées au risque.
+& Proposition explicite des zones sous surveillance ou traitement. \\
+\hline
+
+Rapport fermier
+& Rapport simple.
+& État actuel, image analysée, zone et alertes visibles. \\
+\hline
+
+Rapport technicien
+& Rapport détaillé.
+& Historique, graphes, capteurs, modèle, seuils et API. \\
+\hline
+
+\end{tabularx}
+
+\caption{Exigences fonctionnelles du projet}
+\end{table}
+
+\section{Exigences non fonctionnelles}
+\begin{itemize}
+  \item \textbf{Lisibilité :} interface claire, navigation par modules et hiérarchie visuelle nette.
+  \item \textbf{Robustesse :} éviter les oscillations des plaques par hystérésis.
+  \item \textbf{Traçabilité :} conserver date et heure de chaque diagnostic.
+  \item \textbf{Accessibilité réseau :} application accessible depuis les appareils du même réseau local.
+  \item \textbf{Maintenabilité :} séparation entre serveur, interface, modèles, Raspberry et documentation.
+\end{itemize}
+
+% ============================================================
+\chapter{Architecture globale de la solution}
+% ============================================================
+\section{Vue d'ensemble}
+AgroShield est organisé autour de quatre couches : couche terrain, couche embarquée, couche serveur et couche interface. La couche terrain contient la culture, les plaques, les servomoteurs, le canal, le réservoir, la caméra et les capteurs. La Raspberry Pi collecte les données et transmet les images. Le serveur Flask reçoit les mesures, exécute la logique IA et renvoie les décisions. L'application web affiche le dashboard, le diagnostic, le mécanisme, l'historique et les rapports.
+
+\vspace{0.8cm}
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{vue.png}
+
+    \caption{Architecture globale de la solution}
+\end{figure}
+\vspace{0.5cm}
+
+\section{Flux de données}
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabularx}{\textwidth}{|p{3cm}|p{3cm}|X|}
+\hline
+\textbf{Flux} & \textbf{Source} & \textbf{Destination et usage} \\
+\hline
+
+Mesures capteurs &
+Raspberry Pi &
+Serveur Flask pour le calcul des seuils et la prise de décision. \\
+\hline
+
+Image caméra &
+Caméra USB ou Pi Camera &
+API de diagnostic pour la classification automatique des images foliaires. \\
+\hline
+
+Commande des plaques &
+Serveur ou Raspberry local &
+Servomoteurs MG996R commandés par PWM. \\
+\hline
+
+Historique &
+Serveur web &
+Dashboard, graphes et rapport technicien. \\
+\hline
+
+Rapport PDF &
+Application web &
+Rapport adapté au profil choisi : fermier ou technicien. \\
+\hline
+
+\end{tabularx}
+
+\caption{Flux de données principaux}
+\end{table}
+
+\section{Organisation logicielle}
+Le dossier final du projet est conçu pour être ouvert directement dans VS Code. Les fichiers essentiels sont répartis entre notebooks, scripts de pipeline, serveur, interface, modèles, code Raspberry et documentation.
+
+\begin{lstlisting}[style=codeagro,caption={Organisation logique du projet dans VS Code}]
+final work/
+  data/
+    raw/
+    balanced/
+  notebooks/
+    AgroShield_VSCode_CPU.ipynb
+  src/pipeline/
+    00_installation_verification.py
+    01_extraction_data.py
+    02_equilibrage_albumentations.py
+    ...
+  models/
+    efficientnet_b0_meta.json
+    resnet_50_meta.json
+  raspberry/
+    camera_client.py
+    sensors_client.py
+    servo_controller.py
+    agroshield_raspberry_main.py
+  server.py
+  index.html
+  README.md
+\end{lstlisting}
+
+% ============================================================
+\chapter{Conception mécanique}
+% ============================================================
+\section{Principe mécanique}
+Le mécanisme est constitué de plaques orientables montées sur des axes commandés par servomoteurs. Contrairement à une représentation abstraite en plaques indépendantes A/B, le prototype réel fonctionne comme un ensemble mécanique autour d'une structure porteuse. Les plaques peuvent descendre, couvrir la culture ou s'incliner vers un canal central.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=0.5\textwidth,
+        keepaspectratio
+    ]{prototype réel.png}
+
+    \caption{Prototype mécanique réel}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=0.5\textwidth,
+        keepaspectratio
+    ]{3D.png}
+
+    \caption{Vue 3D}
+\end{figure}
+
+\section{Trois états de fonctionnement}
+\centering
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.4}
+
+\begin{tabular}{|p{2.5cm}|p{2.5cm}|p{8cm}|}
+\hline
+\textbf{État} & \textbf{Angle} & \textbf{Rôle} \\
+\hline
+
+Repos &
+$0^\circ$ &
+Plaques abaissées : la culture reste ouverte lorsque les conditions sont normales.
+\\
+\hline
+
+Chaleur &
+$90^\circ$ &
+Plaques horizontales : protection contre l'excès de rayonnement et de chaleur.
+\\
+\hline
+
+Pluie &
+Inclinaison contrôlée &
+Plaques orientées vers le canal central afin de guider l'eau vers le réservoir.
+\\
+\hline
+
+\end{tabular}
+
+\caption{États mécaniques du prototype}
+\label{tab:etats}
+\end{table}
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{shema 3 cas.png}
+
+    \caption{Schéma des trois positions : repos, chaleur, pluie}
+\end{figure}
+
+\section{Canal central et réservoir}
+Le canal central est un élément clé du projet. En mode pluie, les plaques ne se contentent pas de couvrir la culture. Elles forment des plans inclinés qui guident l'eau vers ce canal. L'eau est ensuite orientée vers un réservoir pour réutilisation ultérieure. La caméra est positionnée sous la zone du canal afin d'observer la culture tout en restant protégée.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{khrit.png}
+
+    \caption{Canal central et réservoir}
+\end{figure}
+
+\section{Composants mécaniques et électroniques}
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{3cm}|p{3cm}|p{8cm}|}
+\hline
+\textbf{Composant} &
+\textbf{Catégorie} &
+\textbf{Rôle} \\
+\hline
+
+Plaques en polycarbonate &
+Protection physique &
+Couvrir ou orienter l'eau tout en laissant passer une partie de la lumière. \\
+\hline
+
+Servomoteurs MG996R &
+Actionnement &
+Piloter l'angle des plaques. \\
+\hline
+
+Raspberry Pi 4 &
+Contrôle et modèles &
+Lire les capteurs, transmettre les images et commander les servomoteurs. \\
+\hline
+
+Caméra &
+Imagerie &
+Capturer les feuilles pour le diagnostic par modèles de classification d'images. \\
+\hline
+
+Capteur DHT22 &
+Instrumentation &
+Mesurer la température et l'humidité de l'air. \\
+\hline
+
+Capteur d'humidité du sol &
+Instrumentation &
+Évaluer l'état hydrique du substrat. \\
+\hline
+
+Capteur de luminosité &
+Instrumentation &
+Mesurer l'intensité lumineuse. \\
+\hline
+
+Canal et réservoir &
+Gestion de l'eau &
+Collecter et stocker l'eau de pluie canalisée. \\
+\hline
+
+\end{tabular}
+
+\caption{Composants principaux du système}
+\label{tab:composants}
+\end{table}
+% ============================================================
+\chapter{Système embarqué Raspberry Pi}
+% ============================================================
+\section{Rôle de la Raspberry Pi}
+La Raspberry Pi joue le rôle de contrôleur terrain. Elle capture les images via caméra USB ou Pi Camera, lit les capteurs, communique avec le serveur Flask et pilote les servomoteurs selon la décision reçue. Cette architecture s'appuie sur les possibilités de capture documentées pour les modules caméra Raspberry Pi et la bibliothèque Picamera2 \cite{raspberrycamera,picamera2}. Elle permet de garder une interface web centralisée tout en rapprochant l'action du terrain.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=0.5\textwidth,
+        keepaspectratio
+    ]{Boucle Raspberry Pi terrain.png}
+
+    \caption{Boucle Raspberry Pi terrain}
+\end{figure}
+
+\section{Capture et transfert d'image}
+Le scénario demandé est le suivant : la caméra capture une image, l'envoie automatiquement au dossier de réception du PC ou à l'API du serveur, puis l'application affiche le diagnostic sans téléchargement manuel. Le serveur doit donc surveiller la dernière image reçue et déclencher automatiquement l'analyse.
+
+\begin{lstlisting}[style=codeagro,caption={Pseudo-code du transfert caméra Raspberry vers serveur}]
+capturer_image()
+envoyer_image_vers_api("/api/diagnose-camera")
+recevoir_resultat = classe + confiance + zone + date_heure
+mettre_a_jour_dashboard(recevoir_resultat)
+si decision_mecanique != "repos":
+    commander_servomoteurs(decision_mecanique)
+\end{lstlisting}
+
+\section{Lecture capteurs}
+Les capteurs considérés sont la température, l'humidité relative, l'humidité du sol, la luminosité et la pluie. Dans une version terrain, ces valeurs peuvent être lues en continu toutes les quelques secondes, puis envoyées au serveur.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+
+\begin{tabular}{|p{3cm}|p{3.2cm}|p{7.2cm}|}
+\hline
+\textbf{Capteur} & \textbf{Grandeur} & \textbf{Usage dans la décision} \\
+\hline
+
+DHT22 &
+Température et humidité de l'air &
+Seuil chaleur, risque fongique et confort de la culture. \\
+\hline
+
+Capteur pluie &
+Pluviométrie ou présence d'eau &
+Déclenchement du mode pluie et canalisation de l'eau. \\
+\hline
+
+Capteur sol capacitif &
+Humidité du sol &
+Surveillance de l'irrigation et de l'excès hydrique. \\
+\hline
+
+TSL2561 ou équivalent &
+Luminosité &
+Évaluation du rayonnement et du stress lumineux. \\
+\hline
+
+Caméra &
+Image RGB &
+Diagnostic foliaire et indice de verdeur approximatif. \\
+\hline
+
+\end{tabular}
+
+\caption{Capteurs et données transmises}
+\label{tab:capteurs}
+\end{table}
+
+\section{Commande des servomoteurs}
+La commande des plaques doit éviter les oscillations. Pour cela, la logique utilise une hystérésis : un seuil d'activation et un seuil de retour. Par exemple, si la température critique est de \(32^\circ C\), le mode chaleur peut être activé au-dessus de \(32^\circ C\) et désactivé seulement sous \(30^\circ C\).
+
+\begin{importantbox}{Hystérésis}
+L'hystérésis protège le mécanisme. Sans elle, les plaques pourraient passer fréquemment de \(0^\circ\) à \(90^\circ\) lorsque la mesure fluctue autour d'un seuil.
+\end{importantbox}
+
+% ============================================================
+\chapter{Pipeline d'intelligence artificielle}
+% ============================================================
+\begin{importantbox}{Terminologie}
+Dans ce rapport, le terme IA désigne l'ensemble de la chaîne de vision par ordinateur. La classification concrète des feuilles est réalisée par les modèles entraînés EfficientNet-B0 et ResNet50 ; ces modèles ne sont pas remplacés par le serveur Flask ni par l'interface web.
+\end{importantbox}
+
+\section{Dataset et classes}
+Le projet utilise un dataset foliaire structuré en quinze classes, construit à partir de ressources de type PlantVillage et de leur documentation associée \cite{plantvillage,tensorflowplantvillage}. Les classes couvrent principalement tomate, poivron et pomme de terre, avec des classes saines et malades. Le notebook original contient l'installation, l'extraction, l'équilibrage, le split train/validation/test, les dataloaders, les modèles CNN, l'entraînement CPU, les courbes d'apprentissage, l'évaluation et l'export Raspberry.
+
+\begin{table}[H]
+\centering
+
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Culture} & \textbf{Classe} & \textbf{Diagnostic} \\
+\hline
+Poivron & Bacterial Spot & Tache bactérienne \\
+Poivron & Healthy & Sain \\
+Pomme de terre & Early Blight & Alternariose \\
+Pomme de terre & Late Blight & Mildiou \\
+Tomate & Septoria Leaf Spot & Septoriose \\
+Tomate & Yellow Leaf Curl Virus & Virus de l'enroulement jaune \\
+\hline
+\end{tabular}
+
+\caption{Exemples de classes diagnostiquées}
+\end{table}
+
+\section{Equilibrage et augmentation}
+Un problème fréquent en classification agricole est le déséquilibre entre classes. Si certaines maladies disposent de beaucoup plus d'images que d'autres, le modèle peut apprendre à favoriser les classes dominantes. Le notebook AgroShield traite ce point de façon explicite : le dataset brut contient 20\,638 images, puis il est ramené à 15\,000 images équilibrées, soit 1\,000 images par classe.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.18}
+\begin{tabular}{|p{7.2cm}|C{2.2cm}|C{2.2cm}|}
+\hline
+\textbf{Classe} & \textbf{Avant} & \textbf{Après} \\
+\hline
+Pepper\_\_bell\_\_\_Bacterial\_spot & 997 & 1000 \\
+Pepper\_\_bell\_\_\_healthy & 1478 & 1000 \\
+Potato\_\_\_Early\_blight & 1000 & 1000 \\
+Potato\_\_\_healthy & 152 & 1000 \\
+Potato\_\_\_Late\_blight & 1000 & 1000 \\
+Tomato\_\_Target\_Spot & 1404 & 1000 \\
+Tomato\_\_Tomato\_mosaic\_virus & 373 & 1000 \\
+Tomato\_\_Tomato\_YellowLeaf\_\_Curl\_Virus & 3208 & 1000 \\
+Tomato\_Bacterial\_spot & 2127 & 1000 \\
+Tomato\_Early\_blight & 1000 & 1000 \\
+Tomato\_healthy & 1591 & 1000 \\
+Tomato\_Late\_blight & 1909 & 1000 \\
+Tomato\_Leaf\_Mold & 952 & 1000 \\
+Tomato\_Septoria\_leaf\_spot & 1771 & 1000 \\
+Tomato\_Spider\_mites\_Two\_spotted\_spider\_mite & 1676 & 1000 \\
+\hline
+\textbf{Total} & \textbf{20638} & \textbf{15000} \\
+\hline
+\end{tabular}
+\caption{Equilibrage du dataset avant apprentissage}
+\label{tab:equilibrage_dataset}
+\end{table}
+
+La règle appliquée est simple : lorsqu'une classe dépasse 1\,000 images, un sous-échantillonnage aléatoire est effectué ; lorsqu'une classe possède moins de 1\,000 images, les images existantes sont conservées et complétées par augmentation. Cette stratégie évite qu'une classe dominante, par exemple Tomato Yellow Leaf Curl Virus, écrase une classe rare comme Potato healthy ou Tomato mosaic virus.
+
+Le cas le plus sensible est la classe Potato healthy : elle ne contient que 152 images originales et atteint 1\,000 images après génération de 848 variantes augmentées. Ce choix est acceptable pour entraîner un prototype lorsque la donnée réelle est limitée, mais il doit être discuté avec prudence. Les images augmentées ne remplacent pas de nouvelles feuilles réellement photographiées ; elles peuvent donc rendre les scores de cette classe plus optimistes. Pour une validation terrain, il faudrait compléter cette classe par de nouvelles acquisitions indépendantes et vérifier séparément ses performances sur des images non issues de l'augmentation.
+
+Les transformations utilisées dans l'équilibrage hors ligne sont celles du pipeline Albumentations du notebook : retournement horizontal, retournement vertical, rotations de 90 degrés, translation-échelle-rotation limitée, bruit gaussien ou ISO, flou gaussien ou médian, variation de luminosité/contraste, variation de teinte/saturation, CLAHE, masquage local de type CoarseDropout et redimensionnement final en \(224 \times 224\). Les transformations restent volontairement modérées afin de ne pas changer la nature visuelle de la maladie.
+
+Le point méthodologique le plus sensible concerne l'ordre entre split et augmentation. Pour éviter toute fuite de données, le protocole final doit figer le test set avant toute augmentation hors ligne. La règle retenue dans le projet est donc la suivante : les images brutes sont d'abord séparées de façon stratifiée en 70\,\% entraînement, 15\,\% validation et 15\,\% test ; ensuite, seules les images du sous-ensemble d'entraînement peuvent être augmentées pour équilibrer les classes. Les images de validation et de test ne doivent jamais servir à générer des variantes d'entraînement, ni au réglage manuel du modèle. Elles ne reçoivent que des transformations déterministes d'évaluation : redimensionnement, recadrage central et normalisation.
+
+Le dossier équilibré historique à 15\,000 images reste utile pour documenter la stratégie de rééquilibrage et les premiers essais. Cependant, pour une validation rigoureuse, il faut utiliser le manifeste strict généré par le script \texttt{src/pipeline/03b\_split\_strict\_no\_leakage.py}. Ce script isole le test set dès les images sources. Sur les 20\,638 images brutes disponibles, il produit 14\,444 images sources pour l'entraînement, 3\,097 pour la validation et 3\,097 pour le test. Les classes rares, notamment \texttt{Potato\_\_\_healthy}, doivent alors être discutées avec prudence : elles peuvent être augmentées dans le train, mais leur validation finale doit rester basée sur des images non vues.
+
+Pendant l'entraînement, le DataLoader ajoute aussi des transformations en ligne sur le train uniquement : RandomResizedCrop, retournements, rotation de 15 degrés, ColorJitter et normalisation ImageNet. Un \textit{WeightedRandomSampler} est également utilisé sur le train loader afin de maintenir une exposition équilibrée des classes pendant les époques d'apprentissage. Cette organisation est cohérente avec les recommandations méthodologiques de la classification déséquilibrée : ne pas juger le modèle uniquement par l'accuracy globale, contrôler les métriques par classe et conserver un test set réellement indépendant \cite{brownleeimbalanced}.
+
+\section{Modèles EfficientNet-B0 et ResNet-50}
+Deux architectures sont retenues :
+\begin{itemize}
+  \item \textbf{EfficientNet-B0 :} modèle léger et performant, adapté à une préparation pour Raspberry Pi.
+  \item \textbf{ResNet-50 :} architecture de référence pour comparaison et robustesse.
+\end{itemize}
+
+Le serveur peut charger le modèle le plus adapté au contexte. Pour le terrain, EfficientNet-B0 est prioritaire car il est plus léger. ResNet-50 peut rester utile pour validation hors ligne ou comparaison. L'implémentation pratique du notebook est réalisée avec PyTorch et Torchvision : les modèles sont entraînés sur CPU, sauvegardés en \texttt{.pth}, puis préparés pour un déploiement Raspberry Pi via export TorchScript lorsque le modèle embarqué est requis \cite{pytorch,torchvision}. Cette logique correspond à une approche \textit{edge AI} : rapprocher l'inférence du dispositif de terrain afin de réduire la dépendance réseau, la latence et le volume de données transférées \cite{banerjeetinyml}.
+
+\section{Benchmarking multicritère des modèles}
+Le choix entre EfficientNet-B0 et ResNet-50 ne doit pas se limiter à la précision globale. Dans AgroShield, le modèle retenu doit être performant, mais aussi suffisamment léger pour la Raspberry Pi, stable sur les classes rares et exploitable dans une boucle capteurs--caméra--action mécanique. Le benchmark est donc défini selon plusieurs critères : précision globale, F1-score macro, F1-score pondéré, matrice de confusion, taille du fichier modèle, nombre approximatif de paramètres et latence CPU moyenne.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|p{3.2cm}|C{2.3cm}|C{2.3cm}|p{6.2cm}|}
+\hline
+\textbf{Critère} & \textbf{EfficientNet-B0} & \textbf{ResNet-50} & \textbf{Interprétation projet} \\
+\hline
+Précision globale semi-finale & 99,42\,\% & 98,62\,\% & EfficientNet-B0 est légèrement supérieur sur le test semi-final. Ces valeurs doivent être recalculées avec le split strict avant conclusion définitive. \\
+\hline
+Taille du fichier \texttt{.pth} & 15,64 Mo & 90,09 Mo & EfficientNet-B0 est nettement plus adapté au transfert et au stockage embarqué. \\
+\hline
+Paramètres approximatifs & 5,3 M & 23,5 M & ResNet-50 est plus lourd ; il sert mieux comme modèle de comparaison hors ligne. \\
+\hline
+F1 macro / F1 pondéré & À recalculer par script & À recalculer par script & Les F1-scores sont essentiels pour vérifier que les classes rares ne sont pas masquées par l'accuracy globale \cite{brownleeimbalanced}. \\
+\hline
+Latence CPU Raspberry/PC & À mesurer & À mesurer & Le script \texttt{08b\_benchmark\_modeles.py} mesure la latence moyenne par image dans l'environnement cible. \\
+\hline
+Rôle recommandé & Déploiement prioritaire & Référence comparative & Le choix d'ingénierie privilégie EfficientNet-B0 pour le terrain, ResNet-50 pour contrôle et comparaison. \\
+\hline
+\end{tabular}
+\caption{Benchmarking multicritère pour le choix du modèle}
+\label{tab:benchmark_modeles}
+\end{table}
+
+Le dépôt contient le script \texttt{src/pipeline/08b\_benchmark\_modeles.py}, qui doit être exécuté après génération du manifeste strict de test. Il produit un fichier JSON et un fichier CSV avec les métriques nécessaires. Ainsi, le rapport ne s'appuie pas uniquement sur une figure de matrice de confusion : il fournit un protocole reproductible pour comparer les modèles selon les critères utiles au déploiement.
+
+\section{Rejet hors domaine}
+Le rejet hors domaine est indispensable. Sans cette étape, une photo d'ordinateur ou d'objet quelconque peut être classée comme maladie simplement parce que le modèle doit choisir une des classes connues. Dans l'application, le rejet n'est pas confié uniquement à la probabilité Softmax ; il combine la sortie des deux modèles avec un contrôle visuel simple de présence végétale.
+
+Concrètement, l'image est convertie en RGB, redimensionnée en \(160 \times 160\), puis analysée dans l'espace HSV. Un pixel est considéré compatible avec une feuille s'il appartient à l'une des plages suivantes : vert foliaire \(45^\circ \leq H \leq 175^\circ\) avec saturation et luminosité suffisantes, jaune/brun foliaire \(18^\circ \leq H < 55^\circ\), ou brun rougeâtre compatible avec des lésions. Le système calcule ensuite un ratio de pixels végétaux, un ratio de saturation, la meilleure confiance entre EfficientNet-B0 et ResNet-50, la marge moyenne entre la première et les classes suivantes, et l'accord ou non entre les deux modèles.
+
+L'image est rejetée si le ratio de pixels végétaux est inférieur à 3,5\,\%, ou s'il reste inférieur à 8\,\% avec une saturation inférieure à 16\,\%. Elle est aussi rejetée lorsque les deux modèles ne sont pas cohérents et que la confiance maximale reste inférieure à 78\,\%, ou lorsque la marge moyenne est inférieure à 8\,\% avec une confiance inférieure à 88\,\%. A l'inverse, elle est acceptée si le ratio végétal atteint au moins 12\,\%, avec une confiance d'au moins 82\,\% et une marge d'au moins 12\,\%, ou si les deux modèles sont d'accord avec au moins 8\,\% de pixels végétaux, 70\,\% de confiance et 10\,\% de marge.
+
+Ce mécanisme reste un filtre d'ingénierie, non un détecteur universel de botanique. Il renforce néanmoins la robustesse du prototype : une image de PC, mur, document ou scène non végétale ne doit pas déclencher de diagnostic foliaire ni d'action mécanique.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{imagehorsdata.png}
+
+    \caption{Rejet hors domaine}
+\end{figure}
+
+\section{Mesures d'évaluation}
+Les mesures retenues pour évaluer les modèles sont la précision globale, la matrice de confusion, le rappel par classe, la précision par classe et le score F1. Pour le projet, le plus important n'est pas seulement la performance moyenne, mais la fiabilité sur les classes critiques et la capacité à refuser les entrées hors domaine. Dans un dataset déséquilibré, l'accuracy peut donner une impression trop favorable si les classes dominantes sont bien reconnues mais que les classes rares restent fragiles. C'est pourquoi les métriques macro et les matrices de confusion normalisées doivent accompagner toute valeur de précision globale \cite{brownleeimbalanced}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{courbe.png}
+
+    \caption{Courbes d’apprentissage}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1.2\textwidth,
+        keepaspectratio
+    ]{Matrice1.png}
+
+    \caption{Matrice de confusion EfficientNet-B0 }
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1.2\textwidth,
+        keepaspectratio
+    ]{Matrice2.png}
+
+    \caption{Matrice de confusion ResNet-50 }
+\end{figure}
+
+
+% ============================================================
+\chapter{Lien maladie--climat et logique décisionnelle}
+% ============================================================
+\section{Principe}
+Le point central du projet est l'intégration entre maladie et climat. La décision mécanique ne dépend pas seulement de seuils capteurs. Elle dépend aussi de la maladie détectée. Par exemple, si une maladie favorisée par la pluie est détectée et qu'une pluie est en cours, le système doit incliner les plaques pour limiter l'eau sur le feuillage et canaliser l'excès vers le réservoir.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=\textwidth,
+        height=15cm,
+        keepaspectratio
+    ]{fermeture.png}
+
+    \caption{Boucle maladie--climat--action}
+    \label{fig:boucle_maladie_climat}
+\end{figure}
+
+
+\section{Probabilité de classification et niveau de risque}
+La relation mathématique réellement calculée par les modèles de classification est la probabilité de sortie issue de la fonction Softmax. Pour une image donnée, si le réseau produit un vecteur de logits \(z\), la probabilité associée à la classe \(k\) est donnée par \cite{goodfellowdeeplearning} :
+\[
+P(y=k \mid z)=\frac{e^{z_k}}{\sum_{j=1}^{K} e^{z_j}}
+\]
+où \(K\) représente le nombre total de classes. Cette probabilité correspond à une confiance de classification : elle indique à quel point le modèle privilégie une classe parmi les classes apprises. Elle ne constitue pas, à elle seule, une probabilité épidémiologique de propagation de la maladie.
+
+Pour relier le diagnostic aux plaques, AgroShield ne pose donc pas une équation universelle de propagation. Le niveau de risque affiché dans l'application est une règle de décision explicable : classe prédite par EfficientNet-B0 ou ResNet50, zone observée, conditions capteurs et facteurs climatiques reconnus dans la littérature. Le fondement agronomique utilisé est le triangle de la maladie, qui relie hôte, pathogène et environnement \cite{diseasetriangle}. Les ressources de prévision phytosanitaire, par exemple NEWA, TOMCAST/FAST ou BLITECAST, montrent également que la température, l'humidité, la pluie et la durée de mouillure foliaire sont des variables majeures dans l'évaluation du risque de certaines maladies \cite{newa,ucipmfast}.
+
+\begin{importantbox}{Justification et limite}
+Le rapport ne prétend pas introduire une nouvelle formule scientifique de propagation. La seule formule probabiliste utilisée pour la classification est la Softmax. La décision maladie--climat est une logique experte documentée, à calibrer ensuite par essais terrain avec les capteurs du prototype et les conditions du site pilote, ici Bouskoura.
+\end{importantbox}
+
+\section{Zones A/B/C}
+La parcelle est divisée en trois zones pour rendre la décision exploitable sur le prototype. La littérature justifie le rôle de l'environnement dans l'apparition et l'aggravation des maladies, notamment via le triangle hôte--pathogène--environnement et les modèles de prévision utilisant température, humidité, pluie ou mouillure foliaire. En revanche, elle ne fournit pas une formule générale permettant d'affirmer automatiquement : ``telle maladie en zone A implique exactement A+B ou une fraction précise de B''.
+
+Le zonage utilisé dans AgroShield doit donc être présenté comme une traduction de mécanismes réels de dispersion sur une maquette compacte. Les trois zones A/B/C ne représentent pas un champ de plusieurs hectares : elles servent à illustrer une décision graduée. Une dispersion locale par éclaboussures est traduite par ``zone détectée + bordure adjacente''. Une dispersion aérienne, vectorielle ou liée à l'ensemble du microclimat de la serre est traduite par ``surveillance globale A/B/C''. Cette règle reste opérationnelle : elle guide la démonstration et doit être calibrée si le système est déployé sur une parcelle réelle.
+
+\begin{importantbox}{Pourquoi une règle experte et non un modèle quantitatif ?}
+Le zonage A/B/C n'est pas présenté comme un modèle épidémiologique complet. Une approche quantitative exigerait des observations géoréférencées dans le temps : position exacte des plants, intensité de symptômes par plant, vent, densité de feuillage, irrigation, historique de pluie et évolution réelle de la maladie. Ces données ne sont pas disponibles à l'échelle du prototype. Le choix retenu est donc une couche experte explicable, fondée sur les mécanismes connus de dispersion, et transformée en décision opérationnelle pour la maquette. Une évolution naturelle du projet serait de remplacer progressivement ces règles par un modèle spatial calibré, par exemple un graphe de voisinage entre zones avec coefficients de transition appris à partir d'essais terrain.
+\end{importantbox}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|p{3.2cm}|p{4.7cm}|p{6.1cm}|}
+\hline
+\textbf{Mécanisme réel} &
+\textbf{Base agronomique} &
+\textbf{Traduction dans le prototype A/B/C} \\
+\hline
+Éclaboussures et eau projetée &
+Maladies comme la tache bactérienne ou la septoriose : dispersion favorisée par pluie, irrigation, feuillage humide et manipulation de plantes mouillées \cite{iowabacterialspot,ncsurbacterialspot,pennstatetomato}. &
+Zone détectée + bordure de la zone voisine exposée. La ``bordure'' représente la proximité immédiate, pas une distance universelle. \\
+\hline
+Spores aériennes ou dissémination rapide &
+Mildiou tomate/pomme de terre : conditions fraîches et humides, spores transportables par l'air, progression rapide si le microclimat est favorable \cite{umnlateblight,ndsupotatolate}. &
+Surveillance globale A/B/C et mode pluie si humidité ou pluie est confirmée. \\
+\hline
+Humidité élevée d'une serre ou d'un abri &
+Moisissure foliaire : pression liée surtout à une humidité relative élevée et à une mauvaise aération \cite{pennstatetomato}. &
+Surveillance de l'ensemble de la serre si l'humidité est élevée, car le facteur aggravant concerne tout le volume protégé. \\
+\hline
+Vecteurs mobiles &
+Yellow Leaf Curl Virus transmis par aleurodes ; la propagation dépend du vecteur et non d'une simple distance entre plaques \cite{nctylcv}. &
+Surveillance globale A/B/C, réduction du stress thermique et alerte sur les vecteurs. \\
+\hline
+Contact mécanique ou manipulation &
+Virus mosaïque : transmission surtout par contact, outils, mains ou plants manipulés. &
+Zone détectée en priorité, puis inspection globale si la confiance est forte ou si plusieurs manipulations ont eu lieu. \\
+\hline
+Ravageurs favorisés par stress chaud et sec &
+Acariens : foyers souvent favorisés par conditions chaudes et sèches, avec extension progressive aux plants proches. &
+Zone détectée + inspection des zones voisines ; couverture chaleur si le seuil thermique est dépassé. \\
+\hline
+\end{tabular}
+\caption{Passage entre mécanismes réels de dispersion et règle zonale du prototype}
+\label{tab:mecanismes_propagation_zones}
+\end{table}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{4cm}|p{4cm}|p{6cm}|}
+\hline
+\textbf{Niveau de décision} &
+\textbf{Critère utilisé} &
+\textbf{Zones concernées} \\
+\hline
+
+Local &
+Maladie détectée mais climat non aggravant et classe peu dispersive &
+Zone observée uniquement. \\
+\hline
+
+Voisinage &
+Maladie favorisée par pluie/humidité avec dispersion locale par éclaboussures ou contact proche &
+Zone observée et bordure adjacente de la zone voisine. \\
+\hline
+
+Global &
+Conditions climatiques favorables sur toute la serre, spores aériennes ou vecteur mobile &
+Zones A/B/C en surveillance renforcée. \\
+\hline
+
+Sous-zonage &
+Besoin d'une décision plus précise qu'une zone entière &
+Créer des sous-zones mesurables, par exemple A1/A2/B1/B2, au lieu d'utiliser une fraction non mesurée. \\
+\hline
+
+\end{tabular}
+
+\caption{Règle opérationnelle de zonage, à valider sur terrain}
+\label{tab:decision_zonale}
+
+\end{table}
+
+\section{Règles par famille de maladie}
+Le tableau suivant synthétise des tendances qualitatives issues de ressources agronomiques et phytosanitaires : mildiou, alternariose, maladies bactériennes, virus de la tomate ou du poivron et acariens \cite{umnlateblight,umnearlyblight,ndsupotatoearly,ndsupotatolate,iowabacterialspot,ncsurbacterialspot,nctylcv,pennstatetomato,umnspidermites}. Il ne donne pas une distance exacte de propagation. Il sert à relier une maladie détectée à un facteur climatique aggravant et à une réponse mécanique cohérente du prototype.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.35}
+
+\begin{tabular}{|p{3cm}|p{3.2cm}|p{3.4cm}|p{4.2cm}|}
+\hline
+\textbf{Famille ou classe} &
+\textbf{Facteur aggravant} &
+\textbf{Effet attendu} &
+\textbf{Réponse AgroShield} \\
+\hline
+
+Mildiou pomme de terre / tomate &
+Humidité, pluie, mouillure foliaire, spores aériennes &
+Propagation rapide possible dans l'ensemble de l'abri &
+Mode pluie et surveillance globale A/B/C. \\
+\hline
+
+Tache bactérienne poivron / tomate &
+Pluie, éclaboussures, humidité, manipulation de feuillage mouillé &
+Dispersion locale par eau projetée &
+Incliner les plaques si pluie ; zone détectée + bordure adjacente. \\
+\hline
+
+Septoriose tomate &
+Humidité, pluie &
+Dispersion locale par éclaboussures et mouillure prolongée &
+Protection contre la pluie ; zone détectée + bordure adjacente. \\
+\hline
+
+Alternariose &
+Chaleur modérée, humidité, pluie, débris végétaux &
+Dispersion par spores, vent, contact et matériel &
+Zone détectée ; ajouter bordures voisines si humidité ou confiance forte. \\
+\hline
+
+Virus de l'enroulement jaune &
+Aleurodes vecteurs, stress thermique &
+Propagation liée aux insectes mobiles &
+Surveillance globale A/B/C ; couverture chaleur si stress thermique. \\
+\hline
+
+Virus mosaïque &
+Contact, outils, manipulation &
+Transmission surtout mécanique &
+Zone détectée puis inspection globale si plusieurs manipulations ou confiance forte. \\
+\hline
+
+Acariens &
+Temps chaud et sec &
+Extension progressive depuis un foyer &
+Zone détectée + inspection des voisines ; couverture chaleur si seuil dépassé. \\
+\hline
+
+Classes saines &
+Excès climatique seul &
+Risque physiologique ou hydrique &
+Action selon les seuils culture. \\
+\hline
+
+\end{tabular}
+
+\caption{Influence climatique simplifiée par type de maladie}
+\label{tab:maladie_climat}
+\end{table}
+
+\section{Seuils par culture}
+Les seuils suivants doivent être considérés comme valeurs de départ à calibrer sur terrain. Ils ne sont pas propres au Maroc : ce sont des plages agronomiques générales pour les cultures suivies, utilisables comme base dans différents contextes africains, puis régionalisables selon l'altitude, la saison, le type de serre, le cultivar et la disponibilité en eau. Les valeurs du tableau s'appuient sur des références agronomiques générales de type FAO/EcoCrop et sur des ressources d'extension agricole concernant le stress thermique des cultures \cite{faotomato,faopepper,faopotato,pennstateheat,umnpepper}. Elles permettent de construire une logique automatique avec hystérésis, mais ne remplacent pas une calibration locale.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{2.4cm}|p{2.4cm}|p{2.4cm}|p{2.8cm}|p{4cm}|}
+\hline
+\textbf{Culture} &
+\textbf{Temp. normale} &
+\textbf{Chaleur critique} &
+\textbf{Humidité critique} &
+\textbf{Réponse} \\
+\hline
+
+Tomate &
+18--25\degC &
+alerte \(>30\degC\), critique \(>32\degC\) &
+HR élevée durable &
+Couverture chaleur ou pluie selon le facteur dominant. \\
+\hline
+
+Poivron &
+18--27\degC &
+\(>32\degC\) à \(35\degC\) &
+HR élevée durable &
+Couverture chaleur ; pluie si maladie bactérienne. \\
+\hline
+
+Pomme de terre &
+18--20\degC air, 15--18\degC sol &
+alerte \(>28\degC\), critique \(>30\degC\) &
+HR élevée durable &
+Surveillance mildiou et protection pluie. \\
+\hline
+
+\end{tabular}
+
+\caption{Seuils agronomiques de décision à calibrer par région africaine}
+\label{tab:seuils_culture}
+\end{table}
+
+\begin{importantbox}{Calibration}
+Les seuils du tableau sont des seuils de départ, adaptés à une application agricole africaine mais à recalibrer localement. Dans le prototype, Bouskoura représente uniquement le site pilote de validation : les capteurs terrain restent la source principale de décision. La météo locale de Bouskoura peut servir de source de secours ou de comparaison lorsque certains capteurs sont indisponibles, par exemple via une API météorologique documentée comme Open-Meteo \cite{openmeteo,openmeteolicence}, mais elle ne remplace pas les mesures terrain dans le fonctionnement normal.
+\end{importantbox}
+
+% ============================================================
+\chapter{Application web}
+% ============================================================
+\section{Objectif de l'interface}
+L'application web transforme AgroShield en centre de contrôle. Elle ne doit pas être une simple page de démonstration. Elle doit permettre de comprendre l'état du système, visualiser les capteurs, suivre l'historique, analyser une image, consulter les zones A/B/C, observer l'animation mécanique et générer des rapports.
+
+\begin{importantbox}{Rôle de l'application web dans le projet}
+L'interface web constitue la couche de décision et de restitution du système. Elle relie les mesures climatiques, le diagnostic foliaire, l'état des plaques, la carte zonale et les rapports. Elle valorise donc le prototype en montrant clairement ce que le système détecte, pourquoi il agit et quel état est visible pour le fermier ou le technicien.
+\end{importantbox}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+
+\begin{tabular}{|p{2.5cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Vue} &
+\textbf{Information montrée} &
+\textbf{Intérêt dans le rapport} \\
+\hline
+
+Accès sécurisé &
+Email institutionnel, code projet et identité Centrale Casablanca. &
+Montrer que l'application est sécurisée et accessible de manière contrôlée. \\
+\hline
+
+Dashboard &
+Capteurs terrain, météo de Bouskoura en secours, risque maladie, carte zonale et alertes. &
+Mettre en valeur la supervision en temps réel du système. \\
+\hline
+
+Diagnostic &
+Image analysée, classe prédite, zone concernée et influence climatique. &
+Illustrer le lien entre le modèle de classification, la maladie détectée et l'action mécanique. \\
+\hline
+
+Rapport &
+Rapport fermier, rapport technicien et assistant agronomique. &
+Présenter la restitution finale et la différence entre les profils utilisateurs. \\
+\hline
+
+\end{tabular}
+
+\caption{Captures d'interface prévues dans le rapport}
+\label{tab:interfaces}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{interface.png}
+
+    \caption{Interface d’accès sécurisé}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{dashb.png}
+
+    \caption{Dashboard de supervision AgroShield}
+\end{figure}
+
+\section{Différence entre vue fermier et vue technicien}
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+
+\begin{tabular}{|p{2.5cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Élément} &
+\textbf{Vue fermier} &
+\textbf{Vue technicien} \\
+\hline
+
+Langage &
+Simple, orienté vers l'état actuel du système. &
+Technique, avec paramètres, seuils et réglages. \\
+\hline
+
+Diagnostic &
+Maladie détectée, zone concernée, état et heure. &
+Classe du dataset, confiance, modèle utilisé et journaux d'exécution. \\
+\hline
+
+Capteurs &
+Couleurs d'alerte et état des capteurs. &
+Valeurs brutes, historiques, seuils et hystérésis. \\
+\hline
+
+Rapport &
+Synthèse simple et lisible. &
+Rapport détaillé avec graphiques et diagnostic complet. \\
+\hline
+
+Action &
+Consulter l'état du système. &
+Vérifier les décisions, analyser et corriger les paramètres. \\
+\hline
+
+\end{tabular}
+
+\caption{Distinction entre les deux profils d'interface}
+\label{tab:profils}
+\end{table}
+
+\section{Dashboard de supervision}
+Le dashboard contient des cartes KPI pour température, humidité, luminosité, pluie, état des plaques, réservoir et IA. Les couleurs vert, orange et rouge indiquent respectivement état normal, attention et critique. Les graphes historiques doivent utiliser des données réelles ou simulées explicitement, sans mélanger les deux.
+
+\section{Carte zonale interactive}
+La carte zonale remplace de simples boutons A/B/C par un plan visuel de la serre ou du champ. Chaque zone change de couleur selon le niveau de risque. Un clic sur une zone ouvre le détail : capteurs, maladie détectée, date/heure, état de propagation et état des plaques.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{carte zonal.png}
+
+    \caption{Carte zonale interactive A/B/C}
+\end{figure}
+
+\section{Diagnostic foliaire dans l'interface}
+La partie diagnostic permet d'envoyer une image, de choisir la zone observée et d'obtenir un résultat interprétable. Le résultat ne se limite pas à la classe prédite : il affiche aussi la confiance, le traitement zonal proposé, le niveau de propagation, l'influence de la chaleur, l'influence de la pluie ou de l'humidité, ainsi que l'action mécanique proposée lorsque le climat aggrave la maladie.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{interfacediag.png}
+
+    \caption{Interface de diagnostic foliaire}
+\end{figure}
+
+\section{Mécanisme animé}
+L'animation doit refléter le mécanisme réel :
+\begin{itemize}
+  \item repos : plaques abaissées ;
+  \item chaleur : plaques horizontales couvrant la culture ;
+  \item pluie : plaques inclinées vers le canal, gouttes animées et réservoir visible.
+\end{itemize}
+
+L'intérêt de cette animation est pédagogique et opérationnel. Elle permet de vérifier que la décision automatique correspond à une action mécanique compréhensible.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{animation.png}
+
+    \caption{Animation du mécanisme en mode pluie}
+\end{figure}
+
+\section{Rapports PDF}
+Deux rapports doivent être générés :
+\begin{itemize}
+  \item \textbf{Rapport fermier :} état actuel, zone concernée, image analysée, heure, niveau d'alerte et position des plaques. Il ne doit pas imposer des consignes techniques complexes.
+  \item \textbf{Rapport technicien :} données capteurs, historique graphique, diagnostic par modèle, seuils, modèle utilisé, logs, alertes et justification de la décision.
+\end{itemize}
+
+
+% ============================================================
+\chapter{Implémentation logicielle}
+% ============================================================
+\section{Serveur Flask}
+Le serveur Flask ne remplace pas les modèles d'intelligence artificielle. Il joue le rôle d'intermédiaire logiciel entre la Raspberry Pi, l'application web, les images reçues, les capteurs et les modèles EfficientNet-B0 / ResNet-50 \cite{flask,flaskquickstart}. Autrement dit, EfficientNet-B0 et ResNet-50 sont les modèles qui réalisent la classification des feuilles, tandis que Flask organise la communication et appelle ces modèles lorsque l'utilisateur ou la Raspberry Pi envoie une image à analyser.
+Dans AgroShield, le serveur reçoit aussi les mesures capteurs, stocke les informations utiles, génère les rapports et expose des endpoints de communication. Ces endpoints sont les adresses utilisées par l'application web ou par la Raspberry Pi pour échanger avec le système.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{4cm}|p{2cm}|p{7cm}|}
+\hline
+\textbf{Endpoint} &
+\textbf{Méthode} &
+\textbf{Rôle} \\
+\hline
+
+\texttt{/api/health}
+& GET
+& Vérifier l'état du serveur. \\
+\hline
+
+\texttt{/api/sensors}
+& GET / POST
+& Lire ou envoyer les mesures des capteurs. \\
+\hline
+
+\texttt{/api/upload}
+& POST
+& Recevoir une image provenant du Raspberry Pi. \\
+\hline
+
+\texttt{/api/diagnose}
+& POST
+& Analyser une image envoyée depuis l'interface. \\
+\hline
+
+\texttt{/api/latest-image}
+& GET
+& Récupérer automatiquement la dernière image reçue. \\
+\hline
+
+\texttt{/api/report/farmer}
+& GET
+& Générer le rapport destiné au fermier. \\
+\hline
+
+\texttt{/api/report/technician}
+& GET
+& Générer le rapport destiné au technicien. \\
+\hline
+
+\end{tabular}
+
+\caption{Endpoints principaux du serveur Flask}
+\label{tab:api}
+\end{table}
+
+\section{Automatisation depuis le dossier de réception}
+Lorsque la Raspberry envoie une image dans le dossier de réception du PC, l'application doit pouvoir détecter la nouvelle image. Deux stratégies sont possibles :
+\begin{enumerate}
+  \item la Raspberry envoie directement l'image à l'endpoint de diagnostic ;
+  \item le serveur surveille le dossier local et analyse la dernière image ajoutée.
+\end{enumerate}
+
+La première stratégie est plus propre pour un système réseau, car elle évite une dépendance au système de fichiers du PC. La seconde est utile lorsque l'envoi vers dossier existe déjà.
+
+\section{Historique}
+L'historique doit stocker :
+\begin{itemize}
+  \item date et heure du diagnostic ;
+  \item zone observée ;
+  \item image analysée ;
+  \item classe prédite ;
+  \item confiance ;
+  \item niveau de risque ;
+  \item état des plaques ;
+  \item conditions climatiques associées.
+\end{itemize}
+
+% ============================================================
+\chapter{Tests et résultats}
+% ============================================================
+\section{Tests mécaniques}
+Les tests mécaniques vérifient la cohérence entre angle commandé et position observée. Les servomoteurs doivent atteindre les trois états sans blocage, sans tremblement excessif et avec une trajectoire lisible.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{2.5cm}|p{3cm}|p{7cm}|}
+\hline
+\textbf{Test} &
+\textbf{Entrée} &
+\textbf{Résultat attendu} \\
+\hline
+
+Repos &
+Conditions normales &
+Plaques abaissées, aucune pluie animée. \\
+\hline
+
+Chaleur &
+Température critique &
+Plaques horizontales à $90^\circ$. \\
+\hline
+
+Pluie &
+Pluie intense &
+Plaques inclinées, canal et réservoir visibles. \\
+\hline
+
+Hystérésis &
+Valeur proche du seuil &
+Aucune oscillation rapide des plaques. \\
+\hline
+
+\end{tabular}
+
+\caption{Plan de test mécanique}
+\label{tab:test_meca}
+\end{table}
+
+\section{Tests des modèles de classification}
+Les tests des modèles doivent couvrir les images foliaires valides et les images hors domaine. Une image de feuille malade doit produire un diagnostic. Une image de PC, mur, objet ou scène non végétale doit être refusée.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{3cm}|p{4cm}|p{6cm}|}
+\hline
+\textbf{Cas} &
+\textbf{Entrée} &
+\textbf{Sortie attendue} \\
+\hline
+
+Feuille saine &
+Image de feuille correspondant au dataset &
+Classe saine avec score de confiance. \\
+\hline
+
+Feuille malade &
+Image de maladie connue &
+Classe prédite, zone concernée, risque et heure. \\
+\hline
+
+Objet non plante &
+Photo d'objet ou d'écran d'ordinateur &
+Refus du diagnostic (hors domaine). \\
+\hline
+
+Image floue &
+Image inexploitable &
+Message indiquant une qualité insuffisante. \\
+\hline
+
+\end{tabular}
+
+\caption{Plan de test du diagnostic par modèles de classification}
+\label{tab:test_ia}
+\end{table}
+
+
+\section{Tests application}
+Les tests application vérifient la navigation, l'affichage des KPI, les graphes, la carte zonale, l'animation, les rapports et la mise à jour après réception d'une image.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1\textwidth,
+        keepaspectratio
+    ]{histori.png}
+
+    \caption{Capture de l’historique graphique complet}
+\end{figure}
+
+\section{Résultats obtenus}
+Les résultats sont présentés en distinguant ce qui est déjà réalisé au niveau prototype et ce qui reste à valider quantitativement avant une utilisation terrain.
+
+Les performances de classification sont indiquées explicitement ci-dessous afin que les matrices de confusion ne soient pas la seule preuve visuelle en soutenance. Les chiffres ci-dessous correspondent au benchmark semi-final réalisé sur 2\,250 images du split 70\,\% / 15\,\% / 15\,\% issu du dossier équilibré. Ils permettent de comparer les deux architectures sur la même base expérimentale, mais ils ne doivent pas être présentés comme la validation finale absolue tant que le benchmark n'a pas été rejoué avec le split strict avant augmentation.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|p{3.6cm}|C{3cm}|C{2.4cm}|p{5.6cm}|}
+\hline
+\textbf{Modèle} & \textbf{Précision globale} & \textbf{Jeu de test} & \textbf{Rôle dans le projet} \\
+\hline
+EfficientNet-B0 & \textbf{99,42\,\%} & 2250 images & Modèle prioritaire pour le déploiement Raspberry Pi, car il est plus léger et conserve une très bonne performance. \\
+\hline
+ResNet-50 & \textbf{98,62\,\%} & 2250 images & Modèle de comparaison et de validation hors ligne, utile pour contrôler la cohérence des prédictions. \\
+\hline
+\end{tabular}
+\caption{Précision globale semi-finale des modèles}
+\label{tab:precision_globale_modeles}
+\end{table}
+
+Ces scores doivent être interprétés avec prudence : ils sont obtenus sur un dataset propre et standardisé, et le protocole strict impose désormais d'isoler le test set avant toute augmentation. La conclusion technique reste toutefois cohérente : EfficientNet-B0 est le meilleur candidat embarqué grâce à son compromis performance--taille, tandis que ResNet-50 reste utile comme référence comparative. Le projet ajoute aussi une logique de rejet hors domaine et prévoit des tests terrain complémentaires avec des images capturées par la caméra Raspberry Pi.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|p{3.8cm}|p{3.1cm}|p{7.2cm}|}
+\hline
+\textbf{Élément} & \textbf{Statut} & \textbf{Commentaire de validation} \\
+\hline
+Prototype mécanique & Réalisé & Structure à plaques orientables avec trois états fonctionnels : repos, couverture horizontale en cas de chaleur, inclinaison vers le canal en cas de pluie. \\
+\hline
+Application web & Réalisée & Interface locale avec dashboard, mécanisme animé, diagnostic foliaire, historique, rapports et distinction fermier/technicien. \\
+\hline
+Chaîne Raspberry--serveur & Réalisée au niveau prototype & L'image capturée peut être envoyée au serveur. La robustesse réseau et le fonctionnement continu doivent être confirmés sur plusieurs essais. \\
+\hline
+Décision capteurs et météo & Implémentée comme logique de supervision & Les capteurs restent la source principale. La météo locale de Bouskoura intervient seulement en secours si les mesures terrain sont indisponibles. \\
+\hline
+Rapports PDF & Réalisés & Deux formats sont prévus : rapport simple pour le fermier et rapport détaillé pour le technicien. \\
+
+\hline
+Calibration terrain & À consolider & Les seuils agronomiques et l'hystérésis doivent être ajustés à partir de mesures réelles sur la serre ou le champ suivi. \\
+\hline
+\end{tabular}
+\caption{Synthèse honnête des résultats obtenus et des validations restantes}
+\label{tab:resultats_obtenus}
+\end{table}
+
+% ============================================================
+\chapter{Analyse critique}
+% ============================================================
+\section{Points forts}
+AgroShield présente plusieurs points forts. D'abord, il intègre des domaines différents dans une même boucle décisionnelle. Ensuite, il ne traite pas le climat et la maladie comme deux problèmes séparés. Enfin, il fournit une interface qui rend visible l'état mécanique et sanitaire du système.
+
+\section{Limites}
+Les limites principales sont :
+\begin{itemize}
+  \item la nécessité de calibrer les seuils sur terrain réel, d'abord sur le site pilote de Bouskoura puis dans d'autres contextes agroclimatiques africains ;
+  \item la dépendance initiale au dataset PlantVillage, dont les images sont souvent propres, centrées et mieux contrôlées que des images prises en conditions réelles ;
+  \item la robustesse du rejet hors domaine à quantifier sur un protocole séparé, par exemple avec des images de PC, murs, objets, documents et scènes non végétales ;
+  \item le risque de surestimation des performances si le split train/validation/test n'est pas strictement contrôlé et si des images trop similaires apparaissent dans plusieurs sous-ensembles ;
+  \item l'absence, à ce stade, d'une campagne longue de mesures météo-capteurs permettant de valider finement les seuils et l'hystérésis ;
+  \item la robustesse mécanique à vérifier sur une longue durée ;
+  \item la nécessité d'un boîtier de protection pour l'électronique.
+\end{itemize}
+
+\section{Risques techniques}
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{3cm}|p{4cm}|p{6cm}|}
+\hline
+\textbf{Risque} &
+\textbf{Impact} &
+\textbf{Mesure de mitigation} \\
+\hline
+
+Servo bloqué &
+Plaques non déployées. &
+Tests périodiques, alimentation stable et retour d'état. \\
+\hline
+
+Image non représentative &
+Diagnostic erroné. &
+Rejet hors domaine (OOD) et contrôle qualité de l'image. \\
+\hline
+
+Seuil mal calibré &
+Actions trop fréquentes ou trop tardives. &
+Utilisation d'une hystérésis et ajustement sur terrain réel. \\
+\hline
+
+Réseau indisponible &
+Interface non mise à jour. &
+Mode local Raspberry Pi et journalisation des événements. \\
+\hline
+
+\end{tabular}
+
+\caption{Risques techniques et mesures de mitigation}
+\label{tab:risques}
+\end{table}
+
+% ============================================================
+\chapter{Perspectives}
+% ============================================================
+\section{Améliorations techniques}
+
+Les améliorations possibles sont nombreuses :
+
+\begin{itemize}
+
+\item déploiement simultané de plusieurs unités AgroShield sur une même exploitation avec coordination centralisée ;
+
+\item intégration de capteurs complémentaires (vitesse du vent, rayonnement solaire, qualité du sol) pour enrichir l'analyse environnementale ;
+
+\item développement d'une architecture IoT permettant la supervision de plusieurs parcelles à distance ;
+
+\item optimisation énergétique avancée par alimentation solaire et gestion intelligente de la consommation ;
+
+\item utilisation de modèles d'intelligence artificielle multimodaux combinant données climatiques, historiques et images foliaires ;
+
+\item extension du système vers des mécanismes de protection de plus grande dimension adaptés aux exploitations agricoles à grande échelle.
+
+\end{itemize}
+
+\section{Améliorations agronomiques}
+\begin{itemize}
+
+\item validation du système sur plusieurs régions climatiques africaines afin d'étudier son adaptabilité ;
+
+\item extension à de nouvelles cultures stratégiques telles que le maïs, le sorgho, le mil ou les légumineuses ;
+
+\item construction d'une base de connaissances agronomiques régionale à partir des données collectées par plusieurs exploitations ;
+
+\item développement de modèles prédictifs permettant d'anticiper l'apparition des maladies avant les premiers symptômes visibles ;
+
+\item élaboration d'une cartographie régionale des risques phytosanitaires à partir des données agrégées du réseau AgroShield ;
+
+\item adaptation des règles de décision aux spécificités agronomiques des différentes zones africaines.
+
+\end{itemize}
+
+\section{Industrialisation}
+Pour passer du prototype au produit, il faudrait travailler sur :
+\begin{itemize}
+  \item la robustesse mécanique ;
+  \item la maintenance ;
+  \item la sécurité électrique ;
+  \item le coût de fabrication ;
+  \item l'ergonomie terrain ;
+  \item la documentation d'installation.
+\end{itemize}
+
+% ============================================================
+\chapter*{Conclusion générale}
+\addcontentsline{toc}{chapter}{Conclusion générale}
+AgroShield propose une réponse intégrée à un problème agricole réel : protéger la culture contre les excès climatiques tout en surveillant l'état sanitaire des plantes. Le projet ne se limite pas à une détection de maladie ni à une fermeture mécanique de plaques. Sa valeur vient de la liaison entre les deux : une maladie détectée peut rendre une pluie, une humidité élevée ou une chaleur excessive plus problématique, et cette information doit influencer la décision de protection.
+
+La version actuelle consolide plusieurs points importants par rapport à une première démonstration : les trois états mécaniques sont représentés selon le prototype réel, le diagnostic repose sur deux modèles de classification entraînés, les résultats de test sont explicités, le rejet hors domaine évite les diagnostics absurdes sur des images non végétales, et la carte zonale A/B/C ne prétend plus donner une distance de propagation universelle. Elle traduit plutôt des mécanismes agronomiques réels, comme les éclaboussures, l'humidité, les spores aériennes, les vecteurs ou le contact mécanique, en règles opérationnelles adaptées à une maquette compacte.
+
+La solution finale repose ainsi sur une architecture complète : prototype mécanique, capteurs, caméra, Raspberry Pi, modèles EfficientNet-B0 et ResNet-50, serveur Flask, application web, carte zonale interactive, historique graphique, rapports fermier/technicien et logique maladie--climat--action. Cette architecture reste perfectible, mais elle constitue une base solide pour un projet d'ingénierie centralien : claire, testable, documentée et orientée terrain.
+
+L'étape suivante doit porter sur la validation expérimentale : mesures prolongées sur le site pilote, calibration des seuils et de l'hystérésis, tests OOD chiffrés, acquisition d'images réelles par caméra Raspberry Pi, essais mécaniques longue durée et retour utilisateur auprès de profils fermier et technicien. Une fois cette base consolidée, la même logique pourra être adaptée à d'autres régions africaines en ajustant les seuils et les règles aux conditions locales. Ces validations permettront de passer d'un prototype convaincant à un système plus robuste, plus mesurable et plus proche d'une utilisation agricole réelle.
+
+% ============================================================
+% ANNEXES ET BIBLIOGRAPHIE — VERSION RIGOUREUSE
+% Remplacer toute l'ancienne partie \appendix jusqu'à \end{document}
+% par le bloc ci-dessous.
+% ============================================================
+
+
+% ============================================================
+% BIBLIOGRAPHIE
+% ============================================================
+
+\begin{thebibliography}{99}
+
+\bibitem{goodfellowdeeplearning}
+I. Goodfellow, Y. Bengio et A. Courville, \textit{Deep Learning}, MIT Press, 2016. Disponible : \url{https://www.deeplearningbook.org/}
+
+\bibitem{efficientnet}
+M. Tan et Q. V. Le, \textit{EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks}, International Conference on Machine Learning, 2019. Disponible : \url{https://arxiv.org/abs/1905.11946}
+
+\bibitem{resnet}
+K. He, X. Zhang, S. Ren et J. Sun, \textit{Deep Residual Learning for Image Recognition}, IEEE Conference on Computer Vision and Pattern Recognition, 2016. Disponible : \url{https://arxiv.org/abs/1512.03385}
+
+\bibitem{plantvillage}
+D. P. Hughes et M. Salathé, \textit{An open access repository of images on plant health to enable the development of mobile disease diagnostics}, 2015. Disponible : \url{https://arxiv.org/abs/1511.08060}
+
+\bibitem{banerjeetinyml}
+R. Banerjee, \textit{Hands-on TinyML: Harness the power of Machine Learning on the edge devices}, BPB Online, 2023.
+
+\bibitem{brownleeimbalanced}
+J. Brownlee, \textit{Imbalanced Classification with Python: Better Metrics, Balance Skewed Classes, and Apply Cost-Sensitive Learning}, Independently Published, 2020.
+
+\bibitem{tensorflowplantvillage}
+TensorFlow Datasets, \textit{PlantVillage dataset documentation}. Disponible : \url{https://www.tensorflow.org/datasets/catalog/plant_village}
+
+\bibitem{pytorch}
+PyTorch Foundation, \textit{PyTorch documentation}. Disponible : \url{https://pytorch.org/docs/stable/index.html}
+
+\bibitem{torchvision}
+PyTorch Foundation, \textit{Torchvision models and TorchScript documentation}. Disponible : \url{https://docs.pytorch.org/vision/stable/models.html}
+
+\bibitem{flask}
+Pallets Projects, \textit{Flask Documentation}. Disponible : \url{https://flask.palletsprojects.com/}
+
+\bibitem{flaskquickstart}
+Pallets Projects, \textit{Flask Quickstart}. Disponible : \url{https://flask.palletsprojects.com/en/stable/quickstart/}
+
+\bibitem{raspberrycamera}
+Raspberry Pi Foundation, \textit{Camera modules documentation}. Disponible : \url{https://www.raspberrypi.com/documentation/accessories/camera.html}
+
+\bibitem{picamera2}
+Raspberry Pi Foundation, \textit{The Picamera2 Library Manual}. Disponible : \url{https://pip.raspberrypi.com/documents/RP-008156-DS-picamera2-manual.pdf}
+
+\bibitem{openmeteo}
+Open-Meteo, \textit{Weather Forecast API documentation}. Disponible : \url{https://open-meteo.com/en/docs}
+
+\bibitem{openmeteolicence}
+Open-Meteo, \textit{Licence and citation guidance}. Disponible : \url{https://open-meteo.com/en/licence}
+
+\bibitem{faotomato}
+FAO, \textit{Crop information: Tomato}. Disponible : \url{https://www.fao.org/land-water/databases-and-software/crop-information/tomato/en/}
+
+\bibitem{faopepper}
+FAO, \textit{Crop information: Pepper}. Disponible : \url{https://www.fao.org/land-water/databases-and-software/crop-information/pepper/en/}
+
+\bibitem{faopotato}
+FAO, \textit{Crop information: Potato}. Disponible : \url{https://www.fao.org/land-water/databases-and-software/crop-information/potato/en/}
+
+\bibitem{pennstateheat}
+Penn State Extension, \textit{Heat Stress and Tomatoes}. Disponible : \url{https://extension.psu.edu/heat-stress-and-tomatoes/}
+
+\bibitem{umnpepper}
+University of Minnesota Extension, \textit{Growing peppers in home gardens}. Disponible : \url{https://extension.umn.edu/vegetables/growing-peppers}
+
+\bibitem{diseasetriangle}
+American Phytopathological Society, \textit{The Disease Triangle: Fundamental concept in plant pathology}. Disponible : \url{https://www.apsnet.org/edcenter/foreducators/TeachingNotes/Pages/DiseaseTriangle.aspx}
+
+\bibitem{newa}
+Cornell University, Network for Environment and Weather Applications, \textit{NEWA disease forecasting resources}. Disponible : \url{https://newa.cornell.edu/}
+
+\bibitem{ucipmfast}
+University of California Agriculture and Natural Resources, UC IPM, \textit{Disease forecasting and FAST/TOMCAST principles for tomato disease risk}. Disponible : \url{https://ipm.ucanr.edu/}
+
+\bibitem{umnlateblight}
+University of Minnesota Extension, \textit{Late blight of tomato and potato}. Disponible : \url{https://extension.umn.edu/disease-management/late-blight}
+
+\bibitem{umnearlyblight}
+University of Minnesota Extension, \textit{Early blight in tomato and potato}. Disponible : \url{https://extension.umn.edu/disease-management/early-blight-tomato-and-potato}
+
+\bibitem{iowabacterialspot}
+Iowa State University Extension, \textit{Bacterial Spot on Pepper and Tomatoes}. Disponible : \url{https://yardandgarden.extension.iastate.edu/encyclopedia/bacterial-spot-pepper-and-tomatoes}
+
+\bibitem{ncsurbacterialspot}
+NC State Extension, \textit{Bacterial Spot of Pepper and Tomato}. Disponible : \url{https://content.ces.ncsu.edu/bacterial-spot-of-pepper-and-tomato}
+
+\bibitem{nctylcv}
+NC State Extension, \textit{Tomato Yellow Leaf Curl Virus resources}. Disponible : \url{https://content.ces.ncsu.edu/catalog/series/217/plant-disease-factsheets}
+
+\bibitem{pennstatetomato}
+Penn State Extension, \textit{Tomato Diseases and Disorders in the Home Garden}. Disponible : \url{https://extension.psu.edu/tomato-diseases-and-disorders-in-the-home-garden/}
+
+\bibitem{umnspidermites}
+University of Minnesota Extension, \textit{Spider mites in home gardens}. Disponible : \url{https://extension.umn.edu/yard-and-garden-insects/spider-mites}
+
+\bibitem{ndsupotatoearly}
+North Dakota State University Extension, \textit{Early Blight of Potato}. Disponible : \url{https://www.ndsu.edu/agriculture/extension/publications/early-blight-potato}
+
+\bibitem{ndsupotatolate}
+North Dakota State University Extension, \textit{Late Blight in Potato}. Disponible : \url{https://www.ndsu.edu/agriculture/extension/publications/late-blight-potato}
+
+\end{thebibliography}
+
+\end{document}

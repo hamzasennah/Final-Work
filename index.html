@@ -1848,7 +1848,8 @@
       const resultBox = document.getElementById("resultBox");
       const rejected = data.out_of_domain || data.is_valid_leaf === false || data.domain_status?.accepted === false;
       const status = rejected ? "Image hors dataset" : (data.is_healthy ? "Feuille saine" : "Maladie détectée");
-      const zones = data.treatment.zones.length ? data.treatment.zones.join(", ") : "Surveillance uniquement";
+      const zones = data.treatment.zones.length ? data.treatment.zones.join(", ") : "Aucune action directe";
+      const monitoringZones = data.treatment.monitoring_zones?.length ? data.treatment.monitoring_zones.join(", ") : "Surveillance normale";
       const climate = data.climate_diagnosis;
       const imageUrl = data.zone?.image_url ? `<img class="result-image" src="${data.zone.image_url}" alt="Image reçue par Raspberry">` : "";
       const domainStatus = rejected ? `
@@ -1870,9 +1871,13 @@
         <h4>${label ? `${label} - ` : ""}${status}</h4>
         <p><strong>Classe prédite:</strong> ${data.predicted_class}</p>
         <p><strong>Confiance:</strong> ${Math.round(data.confidence * 100)}%</p>
-        <p><strong>Traitement précis:</strong> ${data.treatment.treatment_summary}</p>
-        <p><strong>Zones concernées:</strong> ${zones}</p>
+        <p><strong>Zone opérationnelle proposée:</strong> ${data.treatment.treatment_summary}</p>
+        <p><strong>Zones d'action directe:</strong> ${zones}</p>
+        <p><strong>Zones en surveillance:</strong> ${monitoringZones}</p>
+        ${data.treatment.monitoring_summary ? `<p><strong>Logique de surveillance:</strong> ${data.treatment.monitoring_summary}</p>` : ""}
         <p><strong>Niveau de propagation:</strong> ${data.treatment.spread_level}</p>
+        ${data.treatment.prototype_rule ? `<p><strong>Base de propagation:</strong> ${data.treatment.prototype_rule}</p>` : ""}
+        ${data.treatment.policy_source ? `<p><strong>Source agronomique utilisée:</strong> ${data.treatment.policy_source}</p>` : ""}
         ${domainStatus}
         <div class="climate-diagnosis">
           <div class="climate-box">
