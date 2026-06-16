@@ -44,7 +44,21 @@ Remarque importante : ces nombres viennent du dataset brut, pas du dossier `data
 
 ## 3. Benchmark multicritère
 
-Commande :
+Le benchmark se lit en deux niveaux.
+
+Le premier niveau compare les architectures reconnues avec des métriques publiques TorchVision : MobileNetV2, MobileNetV3-Large, EfficientNet-B0, ResNet-18, DenseNet-121, Inception-v3, ResNet-50 et VGG16. Ce tableau est disponible dans `docs/MODEL_BENCHMARK.md` et dans le rapport. Il permet de justifier le choix des deux modèles retenus :
+
+- EfficientNet-B0 : modèle léger, performant et adapté au terrain ;
+- ResNet-50 : référence robuste pour comparaison hors ligne.
+
+Le second niveau compare les poids réellement entraînés dans AgroShield :
+
+| Modèle | Précision semi-finale | Taille locale | Rôle |
+|---|---:|---:|---|
+| EfficientNet-B0 | 99,42 % | 15,64 Mo | Déploiement prioritaire Raspberry Pi |
+| ResNet-50 | 98,62 % | 90,09 Mo | Référence comparative hors ligne |
+
+Commande pour relancer un benchmark expérimental complet :
 
 ```bash
 python src/pipeline/08b_benchmark_modeles.py

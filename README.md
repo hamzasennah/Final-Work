@@ -104,9 +104,17 @@ data/splits_strict/split_manifest.json
 
 Règle à défendre en soutenance: augmentation uniquement sur le train; validation et test restent indépendants et ne servent jamais au réglage manuel du modèle.
 
-### Benchmark EfficientNet-B0 vs ResNet-50
+### Benchmark des architectures IA
 
-Le choix du modèle ne se fait pas seulement sur l'accuracy. Le script suivant compare les deux architectures avec accuracy, macro precision, macro recall, macro F1, weighted F1, taille du modèle, nombre de paramètres et latence CPU:
+Le choix des modèles est justifié par un benchmark multicritère disponible dans `docs/MODEL_BENCHMARK.md`. Il compare des architectures reconnues: MobileNetV2, MobileNetV3-Large, EfficientNet-B0, ResNet-18, DenseNet-121, Inception-v3, ResNet-50 et VGG16.
+
+Conclusion projet:
+
+- `EfficientNet-B0`: meilleur compromis précision publique / complexité / taille pour Raspberry Pi.
+- `ResNet-50`: modèle de référence robuste pour comparaison hors ligne.
+- Les modèles plus anciens ou plus lourds, comme VGG16 ou Inception-v3, sont moins adaptés à une boucle embarquée simple.
+
+Le script suivant reste disponible pour produire un benchmark expérimental sur les poids entraînés localement:
 
 ```bash
 python src/pipeline/08b_benchmark_modeles.py

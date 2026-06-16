@@ -1043,35 +1043,58 @@ Deux architectures sont retenues :
 
 Le serveur peut charger le modèle le plus adapté au contexte. Pour le terrain, EfficientNet-B0 est prioritaire car il est plus léger. ResNet-50 peut rester utile pour validation hors ligne ou comparaison. L'implémentation pratique du notebook est réalisée avec PyTorch et Torchvision : les modèles sont entraînés sur CPU, sauvegardés en \texttt{.pth}, puis préparés pour un déploiement Raspberry Pi via export TorchScript lorsque le modèle embarqué est requis \cite{pytorch,torchvision}. Cette logique correspond à une approche \textit{edge AI} : rapprocher l'inférence du dispositif de terrain afin de réduire la dépendance réseau, la latence et le volume de données transférées \cite{banerjeetinyml}.
 
-\section{Benchmarking multicritère des modèles}
-Le choix entre EfficientNet-B0 et ResNet-50 ne doit pas se limiter à la précision globale. Dans AgroShield, le modèle retenu doit être performant, mais aussi suffisamment léger pour la Raspberry Pi, stable sur les classes rares et exploitable dans une boucle capteurs--caméra--action mécanique. Le benchmark est donc défini selon plusieurs critères : précision globale, F1-score macro, F1-score pondéré, matrice de confusion, taille du fichier modèle, nombre approximatif de paramètres et latence CPU moyenne.
+\section{Benchmarking multicritère des architectures}
+Le benchmarking ne vise pas seulement à dire quel modèle obtient la meilleure précision sur notre dataset. Il sert d'abord à justifier le choix d'architectures adaptées au problème : classification d'images foliaires, ressources limitées sur Raspberry Pi, besoin de robustesse et possibilité de comparaison avec un modèle de référence. Le tableau ci-dessous compare plusieurs architectures reconnues de vision par ordinateur à partir des métriques publiques TorchVision : précision Top-1 ImageNet, nombre de paramètres et coût de calcul en GFLOPS \cite{torchvisionmodels}. Ces valeurs ne sont pas les résultats AgroShield ; elles constituent une base objective pour sélectionner des candidats raisonnables avant entraînement sur les 15 classes foliaires.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|p{2.45cm}|C{1.55cm}|C{1.45cm}|C{1.35cm}|p{6.25cm}|}
+\hline
+\textbf{Architecture reconnue} & \textbf{Top-1 ImageNet} & \textbf{Paramètres} & \textbf{GFLOPS} & \textbf{Lecture pour AgroShield} \\
+\hline
+MobileNetV2 & 72,15\,\% & 3,5 M & 0,30 & Très léger, intéressant pour systèmes ultra-contraints, mais marge de précision publique inférieure à EfficientNet-B0. \\
+\hline
+MobileNetV3-Large & 75,27\,\% & 5,5 M & 0,22 & Très bon candidat embarqué futur ; EfficientNet-B0 reste plus performant publiquement à complexité proche. \\
+\hline
+\textbf{EfficientNet-B0} & \textbf{77,69\,\%} & \textbf{5,3 M} & \textbf{0,39} & Meilleur compromis précision--taille parmi les modèles légers du tableau ; candidat prioritaire pour Raspberry Pi. \\
+\hline
+ResNet-18 & 69,76\,\% & 11,7 M & 1,81 & Architecture simple et robuste, mais moins précise et plus coûteuse qu'EfficientNet-B0 pour ce projet. \\
+\hline
+DenseNet-121 & 74,43\,\% & 8,0 M & 2,83 & Bonne réutilisation des caractéristiques, mais coût calculatoire plus élevé et précision publique inférieure à EfficientNet-B0. \\
+\hline
+Inception-v3 & 77,29\,\% & 27,2 M & 5,71 & Précision proche d'EfficientNet-B0, mais modèle plus lourd et moins pratique pour un déploiement simple sur Raspberry Pi. \\
+\hline
+\textbf{ResNet-50} & \textbf{80,86\,\%} & \textbf{25,6 M} & \textbf{4,09} & Architecture de référence très reconnue, robuste et crédible pour comparaison hors ligne ; plus lourde pour l'embarqué. \\
+\hline
+VGG16 & 71,59\,\% & 138,4 M & 15,47 & Modèle historique mais trop lourd et peu efficace pour une application embarquée moderne. \\
+\hline
+\end{tabular}
+\caption{Benchmark public des architectures candidates de classification d'images}
+\label{tab:benchmark_architectures}
+\end{table}
+
+Ce benchmark valorise le choix effectué : EfficientNet-B0 est retenu car il offre un rapport précision--complexité très favorable, tandis que ResNet-50 est conservé comme modèle de référence reconnu. Autrement dit, AgroShield ne choisit pas deux modèles au hasard : il combine un modèle léger adapté au terrain avec un modèle plus lourd servant de repère technique.
 
 \begin{table}[H]
 \centering
 \small
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{|p{3.2cm}|C{2.3cm}|C{2.3cm}|p{6.2cm}|}
+\begin{tabular}{|p{3.2cm}|C{2.4cm}|C{2.4cm}|C{2.4cm}|p{4.5cm}|}
 \hline
-\textbf{Critère} & \textbf{EfficientNet-B0} & \textbf{ResNet-50} & \textbf{Interprétation projet} \\
+\textbf{Modèle entraîné AgroShield} & \textbf{Précision semi-finale} & \textbf{Taille locale} & \textbf{Rôle} & \textbf{Décision d'ingénierie} \\
 \hline
-Précision globale semi-finale & 99,42\,\% & 98,62\,\% & EfficientNet-B0 est légèrement supérieur sur le test semi-final. Ces valeurs doivent être recalculées avec le split strict avant conclusion définitive. \\
+\textbf{EfficientNet-B0} & \textbf{99,42\,\%} & \textbf{15,64 Mo} & Modèle embarqué prioritaire & À privilégier pour Raspberry Pi : très bon score expérimental et poids réduit. \\
 \hline
-Taille du fichier \texttt{.pth} & 15,64 Mo & 90,09 Mo & EfficientNet-B0 est nettement plus adapté au transfert et au stockage embarqué. \\
-\hline
-Paramètres approximatifs & 5,3 M & 23,5 M & ResNet-50 est plus lourd ; il sert mieux comme modèle de comparaison hors ligne. \\
-\hline
-F1 macro / F1 pondéré & À recalculer par script & À recalculer par script & Les F1-scores sont essentiels pour vérifier que les classes rares ne sont pas masquées par l'accuracy globale \cite{brownleeimbalanced}. \\
-\hline
-Latence CPU Raspberry/PC & À mesurer & À mesurer & Le script \texttt{08b\_benchmark\_modeles.py} mesure la latence moyenne par image dans l'environnement cible. \\
-\hline
-Rôle recommandé & Déploiement prioritaire & Référence comparative & Le choix d'ingénierie privilégie EfficientNet-B0 pour le terrain, ResNet-50 pour contrôle et comparaison. \\
+\textbf{ResNet-50} & \textbf{98,62\,\%} & \textbf{90,09 Mo} & Modèle de référence hors ligne & À garder pour comparaison et validation de cohérence, mais moins adapté au déploiement léger. \\
 \hline
 \end{tabular}
-\caption{Benchmarking multicritère pour le choix du modèle}
-\label{tab:benchmark_modeles}
+\caption{Benchmark expérimental des deux modèles entraînés dans AgroShield}
+\label{tab:benchmark_agroshield_modeles}
 \end{table}
 
-Le dépôt contient le script \texttt{src/pipeline/08b\_benchmark\_modeles.py}, qui doit être exécuté après génération du manifeste strict de test. Il produit un fichier JSON et un fichier CSV avec les métriques nécessaires. Ainsi, le rapport ne s'appuie pas uniquement sur une figure de matrice de confusion : il fournit un protocole reproductible pour comparer les modèles selon les critères utiles au déploiement.
+Les scores AgroShield ci-dessus sont les résultats semi-finaux déjà obtenus sur les modèles entraînés. Pour rester rigoureux, l'évaluation finale doit conserver le principe décrit précédemment : test set isolé avant augmentation et métriques par classe. Néanmoins, même sans attendre ce recalcul complémentaire, le choix architectural est solide : EfficientNet-B0 maximise l'efficacité embarquée, alors que ResNet-50 apporte une référence académique et industrielle connue pour juger la cohérence des prédictions.
 
 \section{Rejet hors domaine}
 Le rejet hors domaine est indispensable. Sans cette étape, une photo d'ordinateur ou d'objet quelconque peut être classée comme maladie simplement parce que le modèle doit choisir une des classes connues. Dans l'application, le rejet n'est pas confié uniquement à la probabilité Softmax ; il combine la sortie des deux modèles avec un contrôle visuel simple de présence végétale.
@@ -1912,6 +1935,9 @@ PyTorch Foundation, \textit{PyTorch documentation}. Disponible : \url{https://py
 
 \bibitem{torchvision}
 PyTorch Foundation, \textit{Torchvision models and TorchScript documentation}. Disponible : \url{https://docs.pytorch.org/vision/stable/models.html}
+
+\bibitem{torchvisionmodels}
+PyTorch Foundation, \textit{TorchVision classification models: accuracy, parameters and GFLOPS}. Disponible : \url{https://docs.pytorch.org/vision/main/models.html}
 
 \bibitem{flask}
 Pallets Projects, \textit{Flask Documentation}. Disponible : \url{https://flask.palletsprojects.com/}
