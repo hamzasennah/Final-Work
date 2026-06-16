@@ -1,32 +1,49 @@
 # Benchmark des architectures de classification
 
-Ce benchmark sert à justifier le choix d'`EfficientNet-B0` et `ResNet-50` dans AgroShield. Les chiffres publics ci-dessous viennent des métriques TorchVision sur ImageNet. Ils ne remplacent pas les résultats AgroShield, mais ils permettent de comparer objectivement les architectures les plus reconnues avant l'entraînement spécifique sur les 15 classes foliaires.
+Ce document justifie le choix d'`EfficientNet-B0` et `ResNet-50` pour AgroShield. Le benchmark est volontairement court : il compare uniquement des architectures reconnues et pertinentes pour une tâche de classification d'images foliaires.
 
-| Architecture | Top-1 ImageNet | Paramètres | GFLOPS | Lecture pour AgroShield |
-|---|---:|---:|---:|---|
-| MobileNetV2 | 72,15 % | 3,5 M | 0,30 | Très léger, mais précision publique plus faible qu'EfficientNet-B0. |
-| MobileNetV3-Large | 75,27 % | 5,5 M | 0,22 | Excellent candidat futur pour embarqué, mais moins performant publiquement qu'EfficientNet-B0 à complexité proche. |
-| EfficientNet-B0 | 77,69 % | 5,3 M | 0,39 | Meilleur compromis précision / taille parmi les modèles légers retenus. |
-| ResNet-18 | 69,76 % | 11,7 M | 1,81 | Simple et robuste, mais moins précis et plus coûteux qu'EfficientNet-B0. |
-| DenseNet-121 | 74,43 % | 8,0 M | 2,83 | Intéressant mais plus coûteux et moins performant publiquement qu'EfficientNet-B0. |
-| Inception-v3 | 77,29 % | 27,2 M | 5,71 | Précision proche d'EfficientNet-B0, mais trop lourd pour une boucle Raspberry simple. |
-| ResNet-50 | 80,86 % | 25,6 M | 4,09 | Référence robuste et reconnue pour comparaison hors ligne. |
-| VGG16 | 71,59 % | 138,4 M | 15,47 | Modèle historique, mais trop lourd pour un système embarqué moderne. |
+## 1. Règle méthodologique
 
-## Résultats AgroShield
+Deux types de métriques ne doivent pas être mélangés.
 
-| Modèle entraîné | Précision semi-finale | Taille locale `.pth` | Rôle projet |
+Le benchmark littérature compare les architectures avec des chiffres publics comparables : Top-1 ImageNet, nombre de paramètres et GFLOPS. Ces valeurs viennent de la documentation officielle TorchVision.
+
+Le benchmark expérimental AgroShield compare uniquement les modèles entraînés sur le même dataset et le même split. C'est ici que l'on doit discuter accuracy, précision macro, rappel macro, F1 macro, F1 pondéré, matrice de confusion, rejet hors domaine, taille du modèle et latence CPU.
+
+## 2. Benchmark littérature
+
+| Architecture reconnue | Nature | Top-1 ImageNet | Paramètres | GFLOPS | Décision AgroShield |
+|---|---|---:|---:|---:|---|
+| VGG16 | CNN historique | 71,59 % | 138,4 M | 15,47 | Trop lourd et peu efficace pour l'embarqué. |
+| Inception-v3 | CNN multi-échelle | 77,29 % | 27,2 M | 5,71 | Reconnu, mais moins simple et plus coûteux qu'un modèle léger. |
+| DenseNet-121 | CNN à connexions denses | 74,43 % | 8,0 M | 2,83 | Crédible, mais moins avantageux qu'EfficientNet-B0 en rapport précision/coût. |
+| MobileNetV2 | CNN mobile | 72,15 % | 3,5 M | 0,30 | Très bon repère mobile, mais précision publique inférieure à EfficientNet-B0. |
+| EfficientNet-B0 | CNN efficient | 77,69 % | 5,3 M | 0,39 | Modèle principal : bon compromis précision, taille et coût de calcul. |
+| ResNet-50 | CNN résiduel | 80,86 % | 25,6 M | 4,09 | Modèle de référence : robuste, reconnu, utile pour contrôle hors ligne. |
+
+## 3. Résultats AgroShield disponibles
+
+| Modèle entraîné | Accuracy semi-finale | Taille locale `.pth` | Rôle projet |
 |---|---:|---:|---|
 | EfficientNet-B0 | 99,42 % | 15,64 Mo | Modèle prioritaire pour Raspberry Pi. |
 | ResNet-50 | 98,62 % | 90,09 Mo | Modèle de référence hors ligne et contrôle de cohérence. |
 
-## Conclusion défendable
+Ces valeurs sont les résultats semi-finaux disponibles. Les métriques F1, rappel et précision sont calculées uniquement sur le même test set strict afin de rester défendables. Le script prévu pour cette évaluation est :
 
-Le choix est volontairement complémentaire :
+```bash
+python src/pipeline/08b_benchmark_modeles.py
+```
 
-- `EfficientNet-B0` valorise le déploiement embarqué : il est léger, efficace et suffisamment performant pour le terrain.
-- `ResNet-50` valorise la crédibilité comparative : c'est une architecture reconnue, plus lourde, utile pour vérifier que les prédictions ne dépendent pas d'un seul modèle.
+Il génère `outputs/benchmarks/model_benchmark.json` et `outputs/benchmarks/model_benchmark.csv` avec accuracy, précision macro, rappel macro, F1 macro, F1 pondéré, paramètres, taille et latence CPU.
 
-Ainsi, AgroShield ne choisit pas simplement deux modèles populaires. Le projet combine un modèle de terrain et un modèle de référence, ce qui donne une justification plus solide en soutenance.
+## 4. Pourquoi YOLO n'est pas comparé ici
 
-Source principale : PyTorch/TorchVision, documentation officielle des modèles de classification.
+YOLO est une famille de modèles de détection d'objets. Elle répond à la question : "où est l'objet ou la lésion dans l'image ?" et s'évalue avec des métriques comme mAP ou IoU. AgroShield traite ici une classification foliaire : "quelle classe de maladie décrit cette image ?".
+
+YOLO serait pertinent dans une future version si le dataset contient des annotations de lésions par boîtes englobantes ou masques. Sans ces annotations, le comparer directement à EfficientNet-B0 ou ResNet-50 serait méthodologiquement incorrect.
+
+## 5. Conclusion défendable
+
+EfficientNet-B0 est retenu comme modèle de terrain parce qu'il garde un coût de calcul faible tout en restant performant. ResNet-50 est retenu comme modèle de référence parce qu'il est très reconnu et robuste, même s'il est plus lourd. Cette combinaison donne un choix équilibré : un modèle pour le déploiement Raspberry Pi et un modèle pour la validation technique.
+
+Sources principales : documentation officielle TorchVision, papiers originaux EfficientNet, ResNet, VGG, Inception-v3, DenseNet, MobileNetV2 et YOLO.

@@ -46,14 +46,16 @@ Remarque importante : ces nombres viennent du dataset brut, pas du dossier `data
 
 Le benchmark se lit en deux niveaux.
 
-Le premier niveau compare les architectures reconnues avec des métriques publiques TorchVision : MobileNetV2, MobileNetV3-Large, EfficientNet-B0, ResNet-18, DenseNet-121, Inception-v3, ResNet-50 et VGG16. Ce tableau est disponible dans `docs/MODEL_BENCHMARK.md` et dans le rapport. Il permet de justifier le choix des deux modèles retenus :
+Le premier niveau compare les architectures reconnues avec des métriques publiques TorchVision : VGG16, Inception-v3, DenseNet-121, MobileNetV2, EfficientNet-B0 et ResNet-50. Ce tableau est disponible dans `docs/MODEL_BENCHMARK.md` et dans le rapport. Il permet de justifier le choix des deux modèles retenus :
 
 - EfficientNet-B0 : modèle léger, performant et adapté au terrain ;
 - ResNet-50 : référence robuste pour comparaison hors ligne.
 
+YOLO n'est pas intégré dans le benchmark principal, car il s'agit d'une famille de modèles de détection d'objets. Il serait pertinent uniquement pour une future version avec annotations de lésions par boîtes ou masques.
+
 Le second niveau compare les poids réellement entraînés dans AgroShield :
 
-| Modèle | Précision semi-finale | Taille locale | Rôle |
+| Modèle | Accuracy semi-finale | Taille locale | Rôle |
 |---|---:|---:|---|
 | EfficientNet-B0 | 99,42 % | 15,64 Mo | Déploiement prioritaire Raspberry Pi |
 | ResNet-50 | 98,62 % | 90,09 Mo | Référence comparative hors ligne |
@@ -67,10 +69,10 @@ python src/pipeline/08b_benchmark_modeles.py
 Le script compare `EfficientNet-B0` et `ResNet-50` avec :
 
 - accuracy ;
-- macro precision ;
-- macro recall ;
-- macro F1 ;
-- weighted F1 ;
+- précision macro ;
+- rappel macro ;
+- F1 macro ;
+- F1 pondéré ;
 - taille du modèle ;
 - nombre de paramètres ;
 - latence CPU moyenne par image.

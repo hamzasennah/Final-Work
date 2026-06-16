@@ -106,13 +106,13 @@ Règle à défendre en soutenance: augmentation uniquement sur le train; validat
 
 ### Benchmark des architectures IA
 
-Le choix des modèles est justifié par un benchmark multicritère disponible dans `docs/MODEL_BENCHMARK.md`. Il compare des architectures reconnues: MobileNetV2, MobileNetV3-Large, EfficientNet-B0, ResNet-18, DenseNet-121, Inception-v3, ResNet-50 et VGG16.
+Le choix des modèles est justifié par un benchmark multicritère disponible dans `docs/MODEL_BENCHMARK.md`. Il compare volontairement peu d'architectures reconnues et pertinentes pour la classification foliaire: VGG16, Inception-v3, DenseNet-121, MobileNetV2, EfficientNet-B0 et ResNet-50.
 
 Conclusion projet:
 
-- `EfficientNet-B0`: meilleur compromis précision publique / complexité / taille pour Raspberry Pi.
-- `ResNet-50`: modèle de référence robuste pour comparaison hors ligne.
-- Les modèles plus anciens ou plus lourds, comme VGG16 ou Inception-v3, sont moins adaptés à une boucle embarquée simple.
+- `EfficientNet-B0`: modèle principal, car il offre le meilleur compromis précision publique / coût de calcul / taille pour Raspberry Pi.
+- `ResNet-50`: modèle de référence robuste pour comparaison hors ligne et contrôle de cohérence.
+- `YOLO` n'est pas placé dans ce benchmark principal, car c'est un modèle de détection d'objets. Il deviendrait pertinent seulement si le dataset contient des annotations de lésions par boîtes ou masques.
 
 Le script suivant reste disponible pour produire un benchmark expérimental sur les poids entraînés localement:
 
@@ -127,7 +127,7 @@ outputs/benchmarks/model_benchmark.json
 outputs/benchmarks/model_benchmark.csv
 ```
 
-Interprétation projet: EfficientNet-B0 est prioritaire pour la Raspberry Pi grâce à son compromis performance/poids; ResNet-50 reste une référence comparative hors ligne.
+Ce script calcule les métriques expérimentales comparables sur le même test set: accuracy, précision macro, rappel macro, F1 macro, F1 pondéré, taille, paramètres et latence CPU.
 
 ## Déploiement Raspberry Pi
 

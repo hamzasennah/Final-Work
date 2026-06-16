@@ -151,7 +151,7 @@ def main() -> None:
             "Lancer d'abord src/pipeline/03b_split_strict_no_leakage.py."
         )
 
-    classes = read_classes(ROOT / "efficientnet_b0_meta.json")
+    classes = read_classes(ROOT / "models/efficientnet_b0_meta.json")
     transform = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),

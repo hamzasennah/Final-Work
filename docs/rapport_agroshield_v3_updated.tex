@@ -1044,7 +1044,9 @@ Deux architectures sont retenues :
 Le serveur peut charger le modèle le plus adapté au contexte. Pour le terrain, EfficientNet-B0 est prioritaire car il est plus léger. ResNet-50 peut rester utile pour validation hors ligne ou comparaison. L'implémentation pratique du notebook est réalisée avec PyTorch et Torchvision : les modèles sont entraînés sur CPU, sauvegardés en \texttt{.pth}, puis préparés pour un déploiement Raspberry Pi via export TorchScript lorsque le modèle embarqué est requis \cite{pytorch,torchvision}. Cette logique correspond à une approche \textit{edge AI} : rapprocher l'inférence du dispositif de terrain afin de réduire la dépendance réseau, la latence et le volume de données transférées \cite{banerjeetinyml}.
 
 \section{Benchmarking multicritère des architectures}
-Le benchmarking ne vise pas seulement à dire quel modèle obtient la meilleure précision sur notre dataset. Il sert d'abord à justifier le choix d'architectures adaptées au problème : classification d'images foliaires, ressources limitées sur Raspberry Pi, besoin de robustesse et possibilité de comparaison avec un modèle de référence. Le tableau ci-dessous compare plusieurs architectures reconnues de vision par ordinateur à partir des métriques publiques TorchVision : précision Top-1 ImageNet, nombre de paramètres et coût de calcul en GFLOPS \cite{torchvisionmodels}. Ces valeurs ne sont pas les résultats AgroShield ; elles constituent une base objective pour sélectionner des candidats raisonnables avant entraînement sur les 15 classes foliaires.
+Le benchmarking doit être lu avec rigueur. Il existe deux niveaux de comparaison qui ne doivent pas être mélangés. Le premier niveau est un benchmark d'architecture : il utilise des indicateurs publics comparables, notamment la précision Top-1 ImageNet, le nombre de paramètres et le coût de calcul en GFLOPS, afin de choisir des familles de modèles reconnues avant l'entraînement spécifique AgroShield \cite{torchvisionmodels}. Le second niveau est le benchmark expérimental interne : il compare uniquement les modèles réellement entraînés sur les mêmes données AgroShield, avec accuracy, précision, rappel, score F1, matrice de confusion et rejet hors domaine.
+
+Les architectures retenues dans le tableau suivant ne sont pas choisies au hasard. Elles couvrent les familles les plus connues et pertinentes pour une tâche de classification d'images : VGG comme baseline historique, Inception comme CNN multi-échelle, DenseNet comme réseau à connexions denses, MobileNetV2 comme référence mobile, EfficientNet-B0 comme architecture légère optimisée, et ResNet-50 comme référence résiduelle robuste \cite{vgg,inceptionv3,densenet,mobilenetv2,efficientnet,resnet}. Ce tableau ne compare donc pas des F1-scores, car ces scores n'ont de sens que lorsque les modèles sont évalués sur le même dataset et le même split.
 
 \begin{table}[H]
 \centering
@@ -1052,30 +1054,30 @@ Le benchmarking ne vise pas seulement à dire quel modèle obtient la meilleure 
 \renewcommand{\arraystretch}{1.25}
 \begin{tabular}{|p{2.45cm}|C{1.55cm}|C{1.45cm}|C{1.35cm}|p{6.25cm}|}
 \hline
-\textbf{Architecture reconnue} & \textbf{Top-1 ImageNet} & \textbf{Paramètres} & \textbf{GFLOPS} & \textbf{Lecture pour AgroShield} \\
+\textbf{Architecture reconnue} & \textbf{Top-1 ImageNet} & \textbf{Paramètres} & \textbf{GFLOPS} & \textbf{Décision pour AgroShield} \\
 \hline
-MobileNetV2 & 72,15\,\% & 3,5 M & 0,30 & Très léger, intéressant pour systèmes ultra-contraints, mais marge de précision publique inférieure à EfficientNet-B0. \\
+VGG16 & 71,59\,\% & 138,4 M & 15,47 & Baseline historique utile pour comprendre l'évolution des CNN, mais beaucoup trop lourde et peu efficace pour une boucle embarquée. \\
 \hline
-MobileNetV3-Large & 75,27\,\% & 5,5 M & 0,22 & Très bon candidat embarqué futur ; EfficientNet-B0 reste plus performant publiquement à complexité proche. \\
+Inception-v3 & 77,29\,\% & 27,2 M & 5,71 & Architecture reconnue et multi-échelle, mais plus lourde et moins simple à déployer qu'un modèle léger sur Raspberry Pi. \\
 \hline
-\textbf{EfficientNet-B0} & \textbf{77,69\,\%} & \textbf{5,3 M} & \textbf{0,39} & Meilleur compromis précision--taille parmi les modèles légers du tableau ; candidat prioritaire pour Raspberry Pi. \\
+DenseNet-121 & 74,43\,\% & 8,0 M & 2,83 & Modèle crédible grâce à la réutilisation des caractéristiques, mais moins avantageux qu'EfficientNet-B0 en rapport précision--coût. \\
 \hline
-ResNet-18 & 69,76\,\% & 11,7 M & 1,81 & Architecture simple et robuste, mais moins précise et plus coûteuse qu'EfficientNet-B0 pour ce projet. \\
+MobileNetV2 & 72,15\,\% & 3,5 M & 0,30 & Très bon repère mobile ; cependant EfficientNet-B0 offre une précision publique nettement supérieure pour un coût encore compatible avec l'embarqué. \\
 \hline
-DenseNet-121 & 74,43\,\% & 8,0 M & 2,83 & Bonne réutilisation des caractéristiques, mais coût calculatoire plus élevé et précision publique inférieure à EfficientNet-B0. \\
+\textbf{EfficientNet-B0} & \textbf{77,69\,\%} & \textbf{5,3 M} & \textbf{0,39} & \textbf{Choisi comme modèle principal : bon compromis entre précision, taille, coût de calcul et préparation Raspberry Pi.} \\
 \hline
-Inception-v3 & 77,29\,\% & 27,2 M & 5,71 & Précision proche d'EfficientNet-B0, mais modèle plus lourd et moins pratique pour un déploiement simple sur Raspberry Pi. \\
-\hline
-\textbf{ResNet-50} & \textbf{80,86\,\%} & \textbf{25,6 M} & \textbf{4,09} & Architecture de référence très reconnue, robuste et crédible pour comparaison hors ligne ; plus lourde pour l'embarqué. \\
-\hline
-VGG16 & 71,59\,\% & 138,4 M & 15,47 & Modèle historique mais trop lourd et peu efficace pour une application embarquée moderne. \\
+\textbf{ResNet-50} & \textbf{80,86\,\%} & \textbf{25,6 M} & \textbf{4,09} & \textbf{Choisi comme modèle de référence : très reconnu, robuste, utile pour comparer et contrôler EfficientNet-B0 hors ligne.} \\
 \hline
 \end{tabular}
 \caption{Benchmark public des architectures candidates de classification d'images}
 \label{tab:benchmark_architectures}
 \end{table}
 
-Ce benchmark valorise le choix effectué : EfficientNet-B0 est retenu car il offre un rapport précision--complexité très favorable, tandis que ResNet-50 est conservé comme modèle de référence reconnu. Autrement dit, AgroShield ne choisit pas deux modèles au hasard : il combine un modèle léger adapté au terrain avec un modèle plus lourd servant de repère technique.
+Ce benchmark valorise le choix effectué : EfficientNet-B0 est retenu car il offre un rapport précision--complexité favorable pour l'embarqué, tandis que ResNet-50 est conservé comme modèle de référence reconnu. AgroShield combine donc un modèle de terrain et un modèle de contrôle, au lieu de choisir uniquement le modèle public le plus lourd.
+
+\begin{importantbox}{Pourquoi YOLO n'est pas dans le benchmark principal ?}
+YOLO est une famille de modèles de détection d'objets : elle sert à localiser des objets ou lésions avec des boîtes, et s'évalue typiquement avec des métriques de détection comme mAP et IoU \cite{yolo}. Le problème traité ici est différent : AgroShield classe une image foliaire parmi 15 classes. YOLO deviendrait pertinent dans une évolution du projet si le dataset contenait des annotations de localisation des lésions. Sans boîtes annotées, le comparer directement à EfficientNet-B0 ou ResNet-50 serait méthodologiquement incorrect.
+\end{importantbox}
 
 \begin{table}[H]
 \centering
@@ -1083,7 +1085,7 @@ Ce benchmark valorise le choix effectué : EfficientNet-B0 est retenu car il off
 \renewcommand{\arraystretch}{1.25}
 \begin{tabular}{|p{3.2cm}|C{2.4cm}|C{2.4cm}|C{2.4cm}|p{4.5cm}|}
 \hline
-\textbf{Modèle entraîné AgroShield} & \textbf{Précision semi-finale} & \textbf{Taille locale} & \textbf{Rôle} & \textbf{Décision d'ingénierie} \\
+\textbf{Modèle entraîné AgroShield} & \textbf{Accuracy semi-finale} & \textbf{Taille locale} & \textbf{Rôle} & \textbf{Décision d'ingénierie} \\
 \hline
 \textbf{EfficientNet-B0} & \textbf{99,42\,\%} & \textbf{15,64 Mo} & Modèle embarqué prioritaire & À privilégier pour Raspberry Pi : très bon score expérimental et poids réduit. \\
 \hline
@@ -1094,7 +1096,7 @@ Ce benchmark valorise le choix effectué : EfficientNet-B0 est retenu car il off
 \label{tab:benchmark_agroshield_modeles}
 \end{table}
 
-Les scores AgroShield ci-dessus sont les résultats semi-finaux déjà obtenus sur les modèles entraînés. Pour rester rigoureux, l'évaluation finale doit conserver le principe décrit précédemment : test set isolé avant augmentation et métriques par classe. Néanmoins, même sans attendre ce recalcul complémentaire, le choix architectural est solide : EfficientNet-B0 maximise l'efficacité embarquée, alors que ResNet-50 apporte une référence académique et industrielle connue pour juger la cohérence des prédictions.
+Les scores AgroShield ci-dessus sont les résultats semi-finaux déjà obtenus sur les deux modèles entraînés. Les métriques essentielles à présenter pour l'évaluation finale sont l'accuracy, la précision macro, le rappel macro, le F1 macro, le F1 pondéré, la matrice de confusion, la taille du modèle et la latence CPU. Ces métriques sont pertinentes uniquement si elles sont calculées sur le même split de test isolé. Le script \texttt{src/pipeline/08b\_benchmark\_modeles.py} calcule ces indicateurs sur EfficientNet-B0 et ResNet-50 avec le manifeste strict du test set.
 
 \section{Rejet hors domaine}
 Le rejet hors domaine est indispensable. Sans cette étape, une photo d'ordinateur ou d'objet quelconque peut être classée comme maladie simplement parce que le modèle doit choisir une des classes connues. Dans l'application, le rejet n'est pas confié uniquement à la probabilité Softmax ; il combine la sortie des deux modèles avec un contrôle visuel simple de présence végétale.
@@ -1917,6 +1919,21 @@ M. Tan et Q. V. Le, \textit{EfficientNet: Rethinking Model Scaling for Convoluti
 
 \bibitem{resnet}
 K. He, X. Zhang, S. Ren et J. Sun, \textit{Deep Residual Learning for Image Recognition}, IEEE Conference on Computer Vision and Pattern Recognition, 2016. Disponible : \url{https://arxiv.org/abs/1512.03385}
+
+\bibitem{vgg}
+K. Simonyan et A. Zisserman, \textit{Very Deep Convolutional Networks for Large-Scale Image Recognition}, International Conference on Learning Representations, 2015. Disponible : \url{https://arxiv.org/abs/1409.1556}
+
+\bibitem{inceptionv3}
+C. Szegedy, V. Vanhoucke, S. Ioffe, J. Shlens et Z. Wojna, \textit{Rethinking the Inception Architecture for Computer Vision}, IEEE Conference on Computer Vision and Pattern Recognition, 2016. Disponible : \url{https://arxiv.org/abs/1512.00567}
+
+\bibitem{densenet}
+G. Huang, Z. Liu, L. van der Maaten et K. Q. Weinberger, \textit{Densely Connected Convolutional Networks}, IEEE Conference on Computer Vision and Pattern Recognition, 2017. Disponible : \url{https://arxiv.org/abs/1608.06993}
+
+\bibitem{mobilenetv2}
+M. Sandler, A. Howard, M. Zhu, A. Zhmoginov et L.-C. Chen, \textit{MobileNetV2: Inverted Residuals and Linear Bottlenecks}, IEEE Conference on Computer Vision and Pattern Recognition, 2018. Disponible : \url{https://arxiv.org/abs/1801.04381}
+
+\bibitem{yolo}
+J. Redmon, S. Divvala, R. Girshick et A. Farhadi, \textit{You Only Look Once: Unified, Real-Time Object Detection}, IEEE Conference on Computer Vision and Pattern Recognition, 2016. Disponible : \url{https://arxiv.org/abs/1506.02640}
 
 \bibitem{plantvillage}
 D. P. Hughes et M. Salathé, \textit{An open access repository of images on plant health to enable the development of mobile disease diagnostics}, 2015. Disponible : \url{https://arxiv.org/abs/1511.08060}
